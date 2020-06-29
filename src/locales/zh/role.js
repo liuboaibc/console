@@ -122,7 +122,8 @@ export default {
   'Devops View': 'Devops 工程查看',
   'Devops Create': 'Devops 工程创建',
 
-  PROJECTS_MANAGEMENT_DESC: '管理企业空间里的所有项目，可以 创建/编辑/删除 项目',
+  PROJECTS_MANAGEMENT_DESC:
+    '管理企业空间里的所有项目，可以 创建/编辑/删除 项目',
   PROJECTS_CREATE_DESC: '拥有创建项目的权限，项目管理员只能为创建者自己',
   PROJECTS_VIEW_DESC: '可以查看企业空间里的所有项目',
   DEVOPS_MANAGEMENT_DESC:
@@ -133,7 +134,8 @@ export default {
 
   'Application Workloads View': '应用负载查看',
   'Application Workloads Management': '应用负载管理',
-  APPLICATION_WORKLOADS_VIEW_DESC: '查看项目里的应用，服务，工作负载，任务等资源',
+  APPLICATION_WORKLOADS_VIEW_DESC:
+    '查看项目里的应用，服务，工作负载，任务等资源',
   APPLICATION_WORKLOADS_MANAGEMENT_DESC:
     '创建/编辑/删除/项目里的应用，服务，工作负载，任务等资源',
   'Volumes View': '存储卷查看',
@@ -236,12 +238,12 @@ export default {
   ROLE_PLATFORM_REGULAR:
     '平台普通用户，在被邀请加入企业空间或集群之前没有任何资源操作权限。',
   ROLE_USER_MANAGER: '平台用户管理员，管理平台所有用户。',
-  ROLE_WORKSPACE_MANAGER: '平台企业空间管理员，管理平台所有企业空间。',
 
   ROLE_CLUSTER_ADMIN: '集群管理员，可以管理集群中所有的资源。',
   ROLE_CLUSTER_VIEWER: '集群观察者，可以查看集群下所有的资源。',
 
   ROLE_WORKSPACE_ADMIN: '企业空间管理员，可以管理企业空间下所有的资源。',
+  ROLE_WORKSPACE_MANAGER: '平台企业空间管理员，管理平台所有企业空间。',
   ROLE_WORKSPACE_REGULAR:
     '企业空间普通成员，可以在企业空间下创建 DevOps 工程和项目。',
   ROLE_WORKSPACE_VIEWER: '企业空间的观察者，可以查看企业空间下所有的资源信息。',
