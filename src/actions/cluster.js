@@ -76,7 +76,7 @@ const handleImport = async (store, data) => {
     await store.validate(postData)
   }
 
-  await store.import(postData)
+  await store.create(postData)
 }
 
 const handleCreate = (store, data) => {
