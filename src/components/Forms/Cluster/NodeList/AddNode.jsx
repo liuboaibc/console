@@ -17,7 +17,7 @@
  */
 
 import React, { Component } from 'react'
-import { cloneDeep, get } from 'lodash'
+import { cloneDeep, get, pick } from 'lodash'
 import classNames from 'classnames'
 import {
   Form,
@@ -28,17 +28,35 @@ import {
   Columns,
   Column,
 } from '@kube-design/components'
-import { Modal } from 'components/Base'
+import { observer } from 'mobx-react'
+import { Modal, Text } from 'components/Base'
 import { NumberInput } from 'components/Inputs'
 import { generateId } from 'utils'
 import { PATTERN_IP } from 'utils/constants'
 
+import HostStore from 'stores/cluster/host'
+
 import styles from './index.scss'
 
+@observer
 export default class AddNode extends Component {
+  static defaultProps = {
+    visible: false,
+    data: {},
+    nodes: [],
+    onOk() {},
+    onCancel() {},
+  }
+
+  store = new HostStore()
+
   state = {
-    formData: cloneDeep(this.props.data || {}),
+    formData: cloneDeep(this.props.data),
     authMode: get(this.props.data, 'privateKey') ? 'secret' : 'password',
+  }
+
+  componentDidMount() {
+    this.fetchHosts()
   }
 
   componentDidUpdate(prevProps) {
@@ -69,8 +87,70 @@ export default class AddNode extends Component {
         ]
   }
 
+  get hosts() {
+    const { nodes } = this.props
+    return this.store.list.data
+      .filter(item => nodes.every(node => node.id !== get(item, 'spec.id')))
+      .map(item => ({
+        label: get(item, 'metadata.name'),
+        value: get(item, 'metadata.name'),
+        host: item,
+      }))
+  }
+
+  fetchHosts = (params = {}) => {
+    this.store.fetchList({
+      ...params,
+    })
+  }
+
   handleAuthModeChange = authMode => {
     this.setState({ authMode })
+  }
+
+  handleHostChange = name => {
+    const host = this.hosts.find(item => item.value === name)
+    if (host) {
+      const formData = cloneDeep(this.state.formData)
+      Object.assign(
+        formData,
+        { name },
+        pick(get(host, 'host.spec'), [
+          'id',
+          'address',
+          'internalAddress',
+          'port',
+          'user',
+          'password',
+          'privateKey',
+        ])
+      )
+      this.setState({ formData })
+    }
+  }
+
+  valueRenderer = option => {
+    const { address } = get(option, 'host.spec', {})
+    return `${option.label}(${address})`
+  }
+
+  optionRenderer = option => {
+    const { arch, osName, cpu, memory, storage, address } = get(
+      option,
+      'host.spec',
+      {}
+    )
+    return (
+      <div className={styles.option}>
+        <Text
+          title={`${option.label}(${address})`}
+          description={`${osName}(${arch})`}
+        />
+        <Text title={`${cpu}${t('Core')}`} description="CPU" />
+        <Text title={`${memory}${t('Gi')}`} description={t('Memory')} />
+        <Text title={`${storage}${t('GB')}`} description={t('Local Storage')} />
+      </div>
+    )
   }
 
   renderAuthentication() {
@@ -118,6 +198,19 @@ export default class AddNode extends Component {
         onOk={onOk}
         onCancel={onCancel}
       >
+        <Form.Item label={t('Select Available Hosts')}>
+          <Select
+            options={this.hosts}
+            pagination={pick(this.store.list, ['page', 'limit', 'total'])}
+            isLoading={this.store.list.isLoading}
+            onFetch={this.fetchHosts}
+            onChange={this.handleHostChange}
+            optionRenderer={this.optionRenderer}
+            valueRenderer={this.valueRenderer}
+            searchable
+            clearable
+          />
+        </Form.Item>
         <Form.Item
           label={t('Node Name')}
           rules={[

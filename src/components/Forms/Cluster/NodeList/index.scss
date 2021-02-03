@@ -36,3 +36,22 @@
 .port {
   width: 100px;
 }
+
+.option {
+  display: flex;
+
+  & > div{
+    min-width: 80px;
+    
+    &:first-child {
+      flex: 1;
+    }
+
+    & > div {
+      & > div,
+      & > p {
+        color: $white;
+      }
+    }
+  } 
+}

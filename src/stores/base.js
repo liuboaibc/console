@@ -131,7 +131,11 @@ export default class BaseStore {
 
     const result = await request.get(
       this.getResourceUrl({ cluster, workspace, namespace, devops }),
-      this.getFilterParams(params)
+      this.getFilterParams(params),
+      null,
+      () => {
+        this.list.isLoading = false
+      }
     )
     const data = get(result, 'items', []).map(item => ({
       cluster,
@@ -163,7 +167,11 @@ export default class BaseStore {
 
     const result = await request.get(
       this.getListUrl({ cluster, namespace, module }),
-      params
+      params,
+      null,
+      () => {
+        this.list.isLoading = false
+      }
     )
     const data = result.items.map(item => ({
       cluster,

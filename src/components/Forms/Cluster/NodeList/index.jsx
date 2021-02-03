@@ -133,6 +133,7 @@ export default class NodeList extends React.Component {
       <AddNode
         visible={showAdd}
         data={data}
+        nodes={value}
         onOk={this.handleAdd}
         onCancel={this.hideAdd}
       />

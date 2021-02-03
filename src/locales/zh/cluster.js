@@ -153,6 +153,8 @@ export default {
 
   'Log Info': '日志信息',
 
+  'Select Available Hosts': '选择可用节点',
+
   NO_CLUSTER_TIP: '请添加至少 1 个集群',
   NO_CLUSTER_TIP_DESC:
     '集群是一组运行着 Kubernetes 的节点 (物理或者虚拟机)，Kubesphere 的功能也依托于集群中的节点来运行',
