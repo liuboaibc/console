@@ -67,7 +67,6 @@ export default class SingleStatDataForm extends Component {
               )}
             </FormItemContainer>
           </Form.Item>
-
           <Form.Item>
             <FormItemContainer name={'decimals'} defaultValue={0}>
               {({ onChange, value }) => (
@@ -87,7 +86,7 @@ export default class SingleStatDataForm extends Component {
           <Form.Item>
             <CustomMonitorMetircQueryInput
               name={'targets[0].expr'}
-              supportMetrics={this.props.supportMetrics}
+              {...this.props}
             />
           </Form.Item>
         </div>

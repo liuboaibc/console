@@ -65,8 +65,11 @@ export default class Card extends React.PureComponent {
         </p>
         <p>
           <Icon name="pod" size={16} />{' '}
-          {get(health, 'workloadStatus.available')} /{' '}
-          {get(health, 'workloadStatus.replicas')}
+          {get(health, 'workloadStatus.available') ||
+            get(health, 'workloadStatus.availableReplicas')}{' '}
+          /{' '}
+          {get(health, 'workloadStatus.replicas') ||
+            get(health, 'workloadStatus.desiredReplicas')}
         </p>
       </div>
     )
@@ -90,8 +93,8 @@ export default class Card extends React.PureComponent {
         </p>
         <p>
           <Icon name="pod" size={16} />{' '}
-          {get(health, 'workloadStatus.available')} /{' '}
-          {get(health, 'workloadStatus.replicas')}
+          {get(health, 'workloadStatus.availableReplicas')} /{' '}
+          {get(health, 'workloadStatus.desiredReplicas')}
         </p>
       </div>
     )
@@ -151,12 +154,9 @@ export default class Card extends React.PureComponent {
         </div>
         <div className={styles.wrapper}>
           {this.renderDetail()}
-          <div className={styles.componentName}>{data.app}</div>
-          {data.version && (
-            <div className={styles.version}>
-              <span>version</span> {data.version}
-            </div>
-          )}
+          <div className={styles.workload}>
+            <span>{t('Deployment')}</span> {data.workload}
+          </div>
         </div>
       </div>
     )

@@ -53,20 +53,23 @@ export default class KubeTools extends React.Component {
     })
   }
 
+  get isHideMeterModal() {
+    return (
+      globals.app.hasKSModule('metering') &&
+      (globals.app.hasPermission({
+        module: 'workspaces',
+        action: 'view',
+      }) ||
+        !isEmpty(globals.user.workspaces) ||
+        globals.app.hasPermission({
+          module: 'clusters',
+          action: 'view',
+        }))
+    )
+  }
+
   get toolList() {
     return [
-      {
-        group: 'History',
-        data: [
-          {
-            key: 'history',
-            icon: 'clock',
-            title: t('History'),
-            description: t('HISTORY_DESC'),
-            onClick: this.props.rootStore.toggleHistory,
-          },
-        ],
-      },
       {
         group: 'Analysis Tools',
         data: [
@@ -99,6 +102,14 @@ export default class KubeTools extends React.Component {
               !globals.app.hasKSModule('auditing'),
             action: 'toolbox.auditingsearch',
           },
+          {
+            icon: 'wallet',
+            title: t('Bill'),
+            description: t('BILLING_OPERATING_DESC'),
+            link: '/bill',
+            hidden: !this.isHideMeterModal,
+            action: 'toolbox.bill',
+          },
         ],
       },
       {
@@ -106,7 +117,7 @@ export default class KubeTools extends React.Component {
         data: [
           {
             icon: 'terminal',
-            link: '/kubectl',
+            link: '/terminal/kubectl',
             title: 'Kubectl',
             description: t('TOOLBOX_KUBECTL_DESC'),
             hidden: !globals.app.isPlatformAdmin,
@@ -155,7 +166,7 @@ export default class KubeTools extends React.Component {
   handleStop = (e, data) => {
     localStorage.setItem(
       KS_TOOLBOX_POS_KEY,
-      JSON.stringify({ x: 0, y: data.y })
+      JSON.stringify({ x: 0, y: Math.max(Math.min(data.y, 0), -900) })
     )
   }
 

@@ -52,6 +52,7 @@ import {
   getLanguageName,
   parseUrl,
   replaceToLocalOrigin,
+  formatDuration,
 } from './index'
 
 it('formatSize', () => {
@@ -268,7 +269,7 @@ it('cpuFormat', () => {
 it('memoryFormat', () => {
   expect(memoryFormat(undefined)).toBe(undefined)
   expect(memoryFormat(null)).toBe(null)
-  expect(memoryFormat('2Gi')).toBe(2000)
+  expect(memoryFormat('2Gi')).toBe(2048)
   expect(memoryFormat('2Gi', 'Gi')).toBe(2)
   expect(memoryFormat('1981289121m', 'ki')).toBe(1934.853)
 })
@@ -429,4 +430,11 @@ it('isAppsPage', () => {
   expect(isAppsPage('/apps')).toBe(true)
   expect(isAppsPage('/apps/app-ix7aus9')).toBe(true)
   expect(isAppsPage('/app')).toBe(false)
+})
+
+it('formatDuration', () => {
+  expect(formatDuration('6m')).toBe(360)
+  expect(formatDuration('1h')).toBe(3600)
+  expect(formatDuration('1.5d')).toBe(129600)
+  expect(formatDuration('6m', 'h')).toBe(0.1)
 })

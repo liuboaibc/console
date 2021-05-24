@@ -26,22 +26,21 @@ const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin')
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer')
   .BundleAnalyzerPlugin
 
-const ChunkRenamePlugin = require('webpack-chunk-rename-plugin')
-
 const root = path => resolve(__dirname, `../${path}`)
 
 const baseConfig = require('./webpack.base')
+const localeConfig = require('./webpack.locale')
 
 const smp = new SpeedMeasurePlugin()
 
-module.exports = smp.wrap({
+const config = smp.wrap({
   mode: 'production',
   entry: baseConfig.entry,
   output: {
     filename: '[name].[chunkhash].js',
     path: root('dist/'),
     publicPath: '/dist/',
-    chunkFilename: '[name].[chunkhash].js',
+    chunkFilename: '[id].[chunkhash].js',
   },
   module: {
     rules: [
@@ -51,12 +50,10 @@ module.exports = smp.wrap({
         include: root('src'),
         loader: [
           MiniCssExtractPlugin.loader,
-          { loader: 'cache-loader' },
           {
             loader: 'css-loader',
             options: {
-              importLoaders: 1,
-              localIdentName: '[folder]__[local]--[hash:base64:5]',
+              importLoaders: 2,
               modules: true,
             },
           },
@@ -72,22 +69,22 @@ module.exports = smp.wrap({
         include: root('node_modules'),
         use: [
           MiniCssExtractPlugin.loader,
-          'css-loader',
-          'sass-loader',
-        ],
-      },
-      {
-        test: /\.css$/,
-        loader: [
-          MiniCssExtractPlugin.loader,
-          { loader: 'cache-loader' },
           {
             loader: 'css-loader',
             options: {
               importLoaders: 2,
             },
           },
+          {
+            loader: 'postcss-loader',
+            options: baseConfig.postCssOptions,
+          },
+          'sass-loader',
         ],
+      },
+      {
+        test: /\.css$/,
+        loader: [MiniCssExtractPlugin.loader, 'css-loader'],
       },
       {
         test: /\.(ttf|otf|eot|woff2?)(\?.+)?$/,
@@ -109,7 +106,7 @@ module.exports = smp.wrap({
     concatenateModules: true,
     minimize: true,
     splitChunks: {
-      chunks: 'all',
+      chunks: 'async',
       minChunks: 1,
       maxAsyncRequests: 5,
       maxInitialRequests: 5,
@@ -132,13 +129,10 @@ module.exports = smp.wrap({
   }),
   plugins: [
     ...baseConfig.plugins,
-    new ChunkRenamePlugin({
-      vendor: '[name].[chunkhash].js',
-    }),
     new CopyPlugin([{ from: root('src/assets'), to: root('dist/assets') }]),
     new MiniCssExtractPlugin({
       filename: '[name].[chunkhash].css',
-      chunkFilename: '[name].[chunkhash].css',
+      chunkFilename: '[id].[chunkhash].css',
     }),
     new OptimizeCssAssetsPlugin({
       assetNameRegExp: /\.css$/g,
@@ -155,3 +149,5 @@ module.exports = smp.wrap({
     new BundleAnalyzerPlugin({ analyzerMode: 'static' }),
   ],
 })
+
+module.exports = [config, localeConfig]

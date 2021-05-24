@@ -71,7 +71,7 @@ export default class AppBanner extends Component {
         },
         {
           value: 'composing',
-          label: t('Composing App'),
+          label: t('Composing Apps'),
         },
       ],
     }
@@ -101,7 +101,7 @@ export default class AppBanner extends Component {
         description: t('HOW_TO_USE_APPLICATION_GOVE_A'),
         operation: this.canDeployComposingApp ? (
           <Button onClick={this.showDeploySampleApp}>
-            {t('Deploy Sample Application')}
+            {t('Deploy Sample App')}
           </Button>
         ) : null,
         closable: false,
@@ -114,7 +114,7 @@ export default class AppBanner extends Component {
       <Banner
         {...this.props}
         description={t('APPLICATIONS_DESC')}
-        tabs={!globals.app.enableAppStore ? undefined : this.tabs}
+        tabs={!globals.app.hasKSModule('openpitrix') ? undefined : this.tabs}
         tips={this.tips}
       />
     )

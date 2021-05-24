@@ -17,17 +17,17 @@
  */
 
 import React from 'react'
-import { Link } from 'react-router-dom'
+
 import { toJS } from 'mobx'
-import { parse } from 'qs'
-import { cloneDeep, get, omit } from 'lodash'
+import { cloneDeep, get, isEmpty, omit } from 'lodash'
 
-import Health from 'projects/components/Health'
-import EmptyTable from 'components/Cards/EmptyTable'
-
+import { Button, Notify } from '@kube-design/components'
+import { Avatar } from 'components/Base'
 import Banner from 'components/Cards/Banner'
 import PipelineStore from 'stores/devops/pipelines'
 import Table from 'components/Tables/List'
+import Empty from 'components/Tables/Base/Empty'
+import Health from 'devops/components/Health'
 
 import { withDevOpsList, ListPage } from 'components/HOCs/withList'
 
@@ -42,34 +42,51 @@ export default class PipelinesList extends React.Component {
     super(props)
 
     this.formTemplate = {
-      devopsName: this.props.devopsStore.devopsName,
+      devopsName: this.devopsName,
       cluster: this.cluster,
       devops: this.devops,
-      enable_timer_trigger: true,
+      enable_timer_trigger: false,
       enable_discarder: true,
     }
-  }
-
-  componentDidMount() {
-    this.unsubscribe = this.routing.history.subscribe(location => {
-      if (location.pathname === this.props.match.url) {
-        const params = parse(location.search.slice(1))
-        this.getData(params)
-      }
-    })
+    this.refreshTimer = setInterval(() => this.refreshHandler(), 4000)
   }
 
   componentWillReceiveProps(nextProps) {
     const { params } = this.props.match
     const { params: nextParams } = nextProps.match
 
-    if (params.devopsName !== nextParams.devopsName) {
+    if (params.devops !== nextParams.devops) {
       this.getData(nextParams)
     }
   }
 
+  componentDidUpdate() {
+    if (this.refreshTimer === null && this.isRuning) {
+      clearInterval(this.refreshTimer)
+      this.refreshTimer = setInterval(() => this.refreshHandler(), 4000)
+    }
+  }
+
   componentWillUnmount() {
+    clearInterval(this.refreshTimer)
     this.unsubscribe && this.unsubscribe()
+  }
+
+  refreshHandler = () => {
+    if (this.isRuning) {
+      this.getData()
+    } else {
+      clearInterval(this.refreshTimer)
+      this.refreshTimer = null
+    }
+  }
+
+  get isRuning() {
+    const { data } = toJS(this.props.store.list)
+    const runingData = data.filter(
+      item => item.status !== 'failed' && item.status !== 'successful'
+    )
+    return !isEmpty(runingData)
   }
 
   get enabledActions() {
@@ -108,7 +125,7 @@ export default class PipelinesList extends React.Component {
   }
 
   get itemActions() {
-    const { trigger } = this.props
+    const { trigger, name } = this.props
 
     return [
       {
@@ -141,13 +158,22 @@ export default class PipelinesList extends React.Component {
         },
       },
       {
+        key: 'copy',
+        icon: 'copy',
+        text: t('Copy Pipeline'),
+        action: 'edit',
+        onClick: record => {
+          this.handleCopy(record.name)
+        },
+      },
+      {
         key: 'delete',
         icon: 'trash',
         text: t('Delete'),
         action: 'delete',
         onClick: record => {
           trigger('resource.delete', {
-            type: t('User'),
+            type: t(name),
             resource: record.name,
             detail: {
               name: record.name,
@@ -229,7 +255,22 @@ export default class PipelinesList extends React.Component {
     })
   }
 
-  handleAdvanceEdit = async name => {
+  handleCopy = async name => {
+    const { trigger } = this.props
+    const formData = await this.getCRDDetail(name)
+
+    trigger('pipeline.copy', {
+      title: t('Copy Pipeline'),
+      formTemplate: formData,
+      devops: this.devops,
+      cluster: this.cluster,
+      success: () => {
+        this.getData()
+      },
+    })
+  }
+
+  getCRDDetail = async name => {
     await this.props.store.fetchDetail({
       cluster: this.cluster,
       name,
@@ -239,7 +280,13 @@ export default class PipelinesList extends React.Component {
     const formData = cloneDeep(this.props.store.getPipeLineConfig())
     formData.devops = this.devops
     formData.cluster = this.cluster
-    formData.devopsName = this.props.devopsStore.devopsName
+    formData.devopsName = this.devopsName
+
+    return formData
+  }
+
+  handleAdvanceEdit = async name => {
+    const formData = await this.getCRDDetail(name)
 
     this.props.trigger('pipeline.advance.edit', {
       title: t('Edit Pipeline'),
@@ -263,11 +310,7 @@ export default class PipelinesList extends React.Component {
         }/pipelines/${encodeURIComponent(record.name)}${
           record.numberOfFailingBranches !== undefined ? '/activity' : ''
         }`
-        return (
-          <Link className="item-name" to={url}>
-            {name}
-          </Link>
-        )
+        return <Avatar to={this.isRuning ? null : url} title={name} />
       },
     },
 
@@ -289,14 +332,42 @@ export default class PipelinesList extends React.Component {
     {
       title: t('PullRequest'),
       dataIndex: 'totalNumberOfPullRequests',
+      width: '20%',
       isHideable: true,
       render: totalNumberOfPullRequests =>
         totalNumberOfPullRequests === undefined
           ? '-'
           : totalNumberOfPullRequests,
-      width: '20%',
     },
   ]
+
+  handleMultiBatchRun = () => {
+    const { selectedRowKeys, data } = toJS(this.props.store.list)
+
+    const multiData = selectedRowKeys.filter(item => {
+      const multi = data.find(_item => _item.name === item)
+      return multi.totalNumberOfBranches
+    })
+
+    const isMulti = !isEmpty(multiData)
+
+    if (isMulti) {
+      Notify.error(t('BATCH_RUN_DESC'))
+      return false
+    }
+
+    this.props.trigger('pipeline.batch.run', {
+      type: t('Pipeline'),
+      rowKey: 'name',
+      devops: this.devops,
+      cluster: this.cluster,
+      success: () => {
+        setTimeout(() => {
+          this.handleFetch()
+        }, 1000)
+      },
+    })
+  }
 
   renderContent() {
     const {
@@ -318,18 +389,33 @@ export default class PipelinesList extends React.Component {
 
     if (isEmptyList && Object.keys(omitFilters).length <= 0) {
       return (
-        <EmptyTable desc={t('PIPELINE_CREATE_DESC')} onCreate={showCreate} />
+        <Empty
+          name="Pipeline"
+          action={
+            showCreate ? (
+              <Button onClick={showCreate} type="control">
+                {t('Create')}
+              </Button>
+            ) : null
+          }
+        />
       )
     }
 
     const pagination = { total, page, limit }
 
     const defaultTableProps = {
-      rowKey: 'name',
       hideCustom: false,
       onSelectRowKeys: this.props.store.setSelectRowKeys,
       selectedRowKeys,
       selectActions: [
+        {
+          key: 'run',
+          type: 'primary',
+          text: t('Run'),
+          action: 'delete',
+          onClick: this.handleMultiBatchRun,
+        },
         {
           key: 'delete',
           type: 'danger',
@@ -353,6 +439,7 @@ export default class PipelinesList extends React.Component {
 
     return (
       <Table
+        rowKey="name"
         data={data}
         columns={this.getColumns()}
         filters={omitFilters}

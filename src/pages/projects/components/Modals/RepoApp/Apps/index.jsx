@@ -22,11 +22,11 @@ import PropTypes from 'prop-types'
 import { get, noop } from 'lodash'
 import { Button, InputSearch, Select } from '@kube-design/components'
 
-import AppList from 'appStore/components/AppList'
+import AppList from 'apps/components/AppList'
 
 import AppStore from 'stores/openpitrix/app'
 import RepoStore from 'stores/openpitrix/repo'
-import { STORE_APP_LIMIT, WORKSPACE_REPO_ID } from 'configs/openpitrix/app'
+import { STORE_APP_LIMIT } from 'configs/openpitrix/app'
 
 import styles from './index.scss'
 
@@ -57,7 +57,7 @@ class Apps extends Component {
   }
 
   get isFormWorkspace() {
-    return this.selectedRepo === WORKSPACE_REPO_ID
+    return !this.selectedRepo
   }
 
   get repoSelectOptions() {
@@ -67,7 +67,7 @@ class Apps extends Component {
       label: name,
     }))
     options.unshift({
-      value: WORKSPACE_REPO_ID,
+      value: null,
       label: t('From workspace'),
     })
 

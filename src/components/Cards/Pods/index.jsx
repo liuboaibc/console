@@ -197,6 +197,7 @@ export default class PodsCard extends React.Component {
         result.namespace = name
         break
       case 'Service':
+      case 'IPPool':
         result.labelSelector = joinSelector(selector)
         break
       default:
@@ -235,7 +236,6 @@ export default class PodsCard extends React.Component {
     const { data, isLoading } = this.store.list
 
     if (isEmpty(data) || isLoading || isEmpty(this.state.params)) return false
-
     this.monitorStore.fetchMetrics({
       step: '1m',
       times: 30,
@@ -329,7 +329,7 @@ export default class PodsCard extends React.Component {
         <InputSearch
           className={styles.search}
           name="search"
-          placeholder={t('Please input a keyword to filter')}
+          placeholder={t('Filter by keyword')}
           onSearch={this.handleSearch}
         />
         <div className={styles.actions}>
@@ -386,7 +386,7 @@ export default class PodsCard extends React.Component {
 
   render() {
     const { className, title, hideHeader, hideFooter, noWrapper } = this.props
-    const { data, isLoading } = this.store.list
+    const { data } = this.store.list
 
     if (noWrapper) {
       return this.renderContent()
@@ -398,7 +398,6 @@ export default class PodsCard extends React.Component {
         title={t(title)}
         empty={t('NOT_AVAILABLE', { resource: t('Pod') })}
         isEmpty={isEmpty(data)}
-        loading={isLoading}
       >
         {!hideHeader && this.renderHeader()}
         {this.renderContent()}

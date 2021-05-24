@@ -26,7 +26,7 @@ import { getLocalTime } from 'utils'
 import { trigger } from 'utils/action'
 import UserStore from 'stores/user'
 
-import DetailPage from 'core/containers/Base/Detail/Page'
+import DetailPage from 'core/containers/Base/Detail'
 
 import routes from './routes'
 
@@ -109,7 +109,7 @@ export default class AccountDetail extends React.Component {
       show: this.showEdit,
       onClick: () =>
         this.trigger('resource.delete', {
-          type: t(this.name),
+          type: t(this.props.name),
           resource: this.store.detail.username,
           detail: toJS(this.store.detail),
           success: () => this.routing.push(this.listUrl),

@@ -16,7 +16,7 @@
  * along with KubeSphere Console.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { has, omit } from 'lodash'
+import { has, omit, isEmpty } from 'lodash'
 import React from 'react'
 import PropTypes from 'prop-types'
 import { Button, Menu, Dropdown, Icon } from '@kube-design/components'
@@ -31,11 +31,13 @@ export default class ActionsInput extends React.Component {
     name: PropTypes.string,
     value: PropTypes.object,
     onChange: PropTypes.func,
+    sourceType: PropTypes.string,
   }
 
   static defaultProps = {
     name: '',
     value: {},
+    sourceType: '',
     onChange() {},
   }
 
@@ -57,29 +59,55 @@ export default class ActionsInput extends React.Component {
       return
     }
 
-    if (key === 'discover_branches') {
-      onChange({ ...value, discover_branches: 1 })
-    } else if (key === 'discover_pr_from_origin') {
-      onChange({ ...value, discover_pr_from_origin: 1 })
-    } else if (key === 'discover_pr_from_forks') {
-      onChange({
-        ...value,
-        discover_pr_from_forks: {
-          strategy: 1,
-          trust: 0,
-        },
-      })
+    switch (key) {
+      case 'discover_branches':
+        onChange({ ...value, discover_branches: 1 })
+        break
+      case 'discover_pr_from_origin':
+        onChange({ ...value, discover_pr_from_origin: 1 })
+        break
+      case 'discover_pr_from_forks':
+        onChange({
+          ...value,
+          discover_pr_from_forks: {
+            strategy: 1,
+            trust: 0,
+          },
+        })
+        break
+      case 'discover_tags':
+        onChange({
+          ...value,
+          discover_tags: true,
+        })
+        break
+      default:
+        break
     }
   }
 
+  get menuData() {
+    const { sourceType } = this.props
+    const MenuData = ['gitlab', 'github', 'bitbucket_server'].includes(
+      sourceType
+    )
+      ? PIPELINE_ACTION_TYPES
+      : {}
+
+    return MenuData
+  }
+
   renderMoreMenu() {
+    const { value } = this.props
+    const valueKey = Object.keys(value)
     return (
       <Menu onClick={this.handleMoreMenuClick}>
-        {Object.keys(PIPELINE_ACTION_TYPES).map(key => (
-          <Menu.MenuItem key={key}>
-            <Icon name="ticket" /> {t(PIPELINE_ACTION_TYPES[key])}
-          </Menu.MenuItem>
-        ))}
+        {!isEmpty(this.menuData) &&
+          Object.keys(this.menuData).map(key => (
+            <Menu.MenuItem key={key} disabled={valueKey.includes(key)}>
+              <Icon name="ticket" /> {t(this.menuData[key])}
+            </Menu.MenuItem>
+          ))}
       </Menu>
     )
   }
@@ -100,7 +128,7 @@ export default class ActionsInput extends React.Component {
           </Dropdown>
         </div>
         <div className={styles.content}>
-          {Object.keys(PIPELINE_ACTION_TYPES)
+          {Object.keys(this.menuData)
             .filter(has.bind(this, value))
             .map((key, index) => (
               <Item
@@ -109,6 +137,7 @@ export default class ActionsInput extends React.Component {
                 prefix={`${name}[${index}]`}
                 onDelete={this.handleDelete.bind(this, key)}
                 onChange={this.handleChange}
+                menuData={this.menuData}
               />
             ))}
         </div>

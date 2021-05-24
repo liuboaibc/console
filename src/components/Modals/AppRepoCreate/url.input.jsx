@@ -31,6 +31,7 @@ import {
   Select,
   Tooltip,
   Loading,
+  Icon,
 } from '@kube-design/components'
 
 import styles from './index.scss'
@@ -99,8 +100,8 @@ export default class UrlInput extends React.Component {
 
   getCredential(formData) {
     const credential = {
-      access_key_id: '',
-      secret_access_key: '',
+      accessKeyID: '',
+      secretAccessKey: '',
     }
 
     if (formData.credential) {
@@ -193,11 +194,9 @@ export default class UrlInput extends React.Component {
     }
 
     if (this.type === 's3') {
-      const { access_key_id, secret_access_key } = this.credential
+      const { accessKeyID, secretAccessKey } = this.credential
       return (
-        !isEmpty(this.url) &&
-        !isEmpty(access_key_id) &&
-        !isEmpty(secret_access_key)
+        !isEmpty(this.url) && !isEmpty(accessKeyID) && !isEmpty(secretAccessKey)
       )
     }
 
@@ -244,7 +243,7 @@ export default class UrlInput extends React.Component {
               : checkRepoInvalidReason(validateStatusCode)
           }
         >
-          <span className={`icon icon-${validateStatus}`} />
+          <Icon name={validateStatus} />
         </Tooltip>
       )
 
@@ -254,7 +253,7 @@ export default class UrlInput extends React.Component {
   renderField() {
     return (
       <div className={styles.field}>
-        <label className={styles.label}>{t('URL')}:</label>
+        <label className={styles.label}>{t('URL')}</label>
         <div className={styles.fieldInput}>
           <Select
             className={styles.protocol}
@@ -268,7 +267,7 @@ export default class UrlInput extends React.Component {
             name="url"
             value={this.url}
             validateStatus={this.validateStatus}
-            placeholder="eg. https://github.com/mycompany/myca…"
+            placeholder="https://github.com/mycompany/myca…"
             onChange={this.handleUrlChange}
           />
           {this.renderValidateStatus()}
@@ -295,16 +294,16 @@ export default class UrlInput extends React.Component {
         <div className={styles.accessItem}>
           <label className={styles.label}>{t('Access Key ID')}:</label>
           <Input
-            name="access_key_id"
-            value={this.credential.access_key_id}
+            name="accessKeyID"
+            value={this.credential.accessKeyID}
             onChange={this.handleAccessInputChange}
           />
         </div>
         <div className={styles.accessItem}>
           <label className={styles.label}>{t('Secret Access Key')}:</label>
           <Input
-            name="secret_access_key"
-            value={this.credential.secret_access_key}
+            name="secretAccessKey"
+            value={this.credential.secretAccessKey}
             onChange={this.handleAccessInputChange}
           />
         </div>

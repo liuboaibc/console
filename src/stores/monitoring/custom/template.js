@@ -16,7 +16,7 @@
  * along with KubeSphere Console.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { pick, omit } from 'lodash'
+import { get, set, omit } from 'lodash'
 import { observable, action, computed, toJS } from 'mobx'
 import moment from 'moment-mini'
 
@@ -46,6 +46,17 @@ export default class CustomMonitoringTemplate {
    * monitoring timeRange
    */
   @observable time = { from: 'now', to: 'now' }
+
+  getPath({ cluster, namespace } = {}) {
+    let path = ''
+    if (cluster) {
+      path += `/klusters/${cluster}`
+    }
+    if (namespace) {
+      path += `/namespaces/${namespace}`
+    }
+    return path
+  }
 
   /**
    * refresh timestamp convenient for use
@@ -106,6 +117,7 @@ export default class CustomMonitoringTemplate {
     isEditing = false,
     refresh = '',
     name = '',
+    formTemplate,
   }) {
     this.title = title
     this.cluster = cluster
@@ -117,6 +129,7 @@ export default class CustomMonitoringTemplate {
     this.time = time
     this.refresh = refresh
     this.name = name
+    this.formTemplate = formTemplate
 
     this.isEditing = isEditing
 
@@ -328,9 +341,10 @@ export default class CustomMonitoringTemplate {
 
   async fetchMetadata() {
     const { data: targetsMetadata } = (await request.get(
-      `kapis/monitoring.kubesphere.io/v1alpha3${
-        this.cluster ? `/klusters/${this.cluster}` : ''
-      }/namespaces/${this.namespace}/targets/metadata`
+      `kapis/monitoring.kubesphere.io/v1alpha3${this.getPath({
+        cluster: this.cluster,
+        namespace: this.namespace,
+      })}/targets/metadata`
     )) || { data: [] }
     this.targetsMetadata = targetsMetadata || []
   }
@@ -350,20 +364,18 @@ export default class CustomMonitoringTemplate {
       return panels.concat(row.config, monitorConfigs)
     }, [])
 
-    return {
-      ...pick(this, [
-        'title',
-        'cluster',
-        'namespace',
-        'datasource',
-        'description',
-        'templatings',
-        'time',
-        'refresh',
-        'name',
-      ]),
-      time: toJS(this.time),
-      panels: [...unRowPanels, ...inRowPanels],
-    }
+    set(
+      this.formTemplate,
+      'spec',
+      Object.assign(get(this.formTemplate, 'spec', {}), {
+        title: this.title,
+        templatings: this.templatings,
+        refresh: this.refresh,
+        time: toJS(this.time),
+        panels: [...unRowPanels, ...inRowPanels],
+      })
+    )
+
+    return this.formTemplate
   }
 }

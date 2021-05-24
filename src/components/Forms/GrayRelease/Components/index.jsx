@@ -16,7 +16,7 @@
  * along with KubeSphere Console.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { get, isEmpty, set } from 'lodash'
+import { get, isEmpty, set, unset } from 'lodash'
 import copy from 'fast-copy'
 import React from 'react'
 import { toJS } from 'mobx'
@@ -31,6 +31,8 @@ import ServiceStore from 'stores/service'
 import SelectComponent from './SelectComponent'
 
 import styles from './index.scss'
+
+const REQUEST_CONTENT_PROTOCOLS = ['http', 'http2', 'grpc']
 
 @observer
 export default class Components extends React.Component {
@@ -130,6 +132,8 @@ export default class Components extends React.Component {
       const workloads = toJS(this.serviceStore.workloads.data)
       const strategies = toJS(this.store.list.data)
 
+      unset(this.formTemplate, 'spec.hosts')
+
       this.setState({
         components: services.map(item => {
           item.workloads = []
@@ -177,8 +181,11 @@ export default class Components extends React.Component {
 
       const portName = get(component, 'ports[0].name', '')
       // TO FIXED: add port select
-      const protocol =
-        (portName.split('-')[0] || '').toLowerCase() === 'http' ? 'http' : 'tcp'
+      const protocol = REQUEST_CONTENT_PROTOCOLS.includes(
+        (portName.split('-')[0] || '').toLowerCase()
+      )
+        ? 'http'
+        : 'tcp'
       const version = workload.labels.version
 
       set(this.formTemplate, 'metadata.labels.app', value)

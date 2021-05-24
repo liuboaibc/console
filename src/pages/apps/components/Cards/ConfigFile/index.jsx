@@ -83,7 +83,7 @@ export default class ConfigFile extends React.Component {
 
   modifyPackage = async params => {
     await this.store.update(params)
-    Notify.success({ content: `${t('Modify Successfully')}!` })
+    Notify.success({ content: `${t('Modify Successfully')}` })
     await this.fetchData()
   }
 
@@ -93,14 +93,14 @@ export default class ConfigFile extends React.Component {
     if (!detail.description) {
       return (
         <div className={styles.updateInfo}>
-          <pre>{t('No version info')}</pre>
+          <pre>{t('No version information')}</pre>
         </div>
       )
     }
 
     return (
       <div className={styles.updateInfo}>
-        <div className={styles.title}>{t('Version update info')}</div>
+        <div className={styles.title}>{t('Version Update Info')}</div>
         <pre>{detail.description}</pre>
       </div>
     )

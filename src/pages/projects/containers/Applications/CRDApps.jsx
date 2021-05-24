@@ -19,7 +19,8 @@
 import React from 'react'
 import { get } from 'lodash'
 
-import { Status, Avatar } from 'components/Base'
+import { Status } from 'components/Base'
+import Avatar from 'apps/components/Avatar'
 import { withProjectList, ListPage } from 'components/HOCs/withList'
 import Table from 'components/Tables/List'
 
@@ -82,7 +83,7 @@ export default class CRDApps extends React.Component {
         dataIndex: 'status',
         isHideable: true,
         width: '20%',
-        render: status => <Status name={t(status)} type={status} />,
+        render: status => <Status name={t(status)} type={status} flicker />,
       },
       {
         title: t('Version'),
@@ -129,10 +130,9 @@ export default class CRDApps extends React.Component {
         ...tableProps.tableActions,
         actions,
         onCreate: null,
-        selectActions: [],
       },
       emptyProps: {
-        title: t('Composing App'),
+        title: t('Composing Apps'),
         desc: t('COMPOSING_APP_DESC'),
       },
       searchType: 'name',

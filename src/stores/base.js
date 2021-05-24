@@ -137,8 +137,9 @@ export default class BaseStore {
         this.list.isLoading = false
       }
     )
-    const data = get(result, 'items', []).map(item => ({
+    const data = (get(result, 'items') || []).map(item => ({
       cluster,
+      namespace,
       ...this.mapper(item),
     }))
 

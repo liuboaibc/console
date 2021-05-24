@@ -29,12 +29,44 @@ import { ICON_TYPES, SERVICE_TYPES } from 'utils/constants'
 
 import ServiceStore from 'stores/service'
 
+import Topology from './Topology'
+
 @withProjectList({
   store: new ServiceStore(),
   module: 'services',
   name: 'Service',
 })
 export default class Services extends React.Component {
+  state = {
+    type: 'list',
+  }
+
+  handleTabChange = value => {
+    this.setState({ type: value })
+  }
+
+  get tabs() {
+    const { cluster } = this.props.match.params
+    if (!globals.app.hasClusterModule(cluster, 'network.topology')) {
+      return {}
+    }
+
+    return {
+      value: this.state.type,
+      onChange: this.handleTabChange,
+      options: [
+        {
+          value: 'list',
+          label: t('List'),
+        },
+        {
+          value: 'topology',
+          label: t('Topology'),
+        },
+      ],
+    }
+  }
+
   get tips() {
     return [
       {
@@ -49,7 +81,7 @@ export default class Services extends React.Component {
   }
 
   get itemActions() {
-    const { trigger } = this.props
+    const { trigger, name } = this.props
     return [
       {
         key: 'edit',
@@ -99,7 +131,7 @@ export default class Services extends React.Component {
         action: 'delete',
         onClick: item =>
           trigger('service.delete', {
-            type: t(this.name),
+            type: t(name),
             detail: item,
           }),
       },
@@ -199,17 +231,22 @@ export default class Services extends React.Component {
   }
 
   render() {
-    const { bannerProps, tableProps } = this.props
+    const { type } = this.state
+    const { bannerProps, tableProps, match } = this.props
     return (
       <ListPage {...this.props}>
-        <Banner {...bannerProps} tips={this.tips} />
-        <Table
-          {...tableProps}
-          itemActions={this.itemActions}
-          tableActions={this.tableActions}
-          columns={this.getColumns()}
-          onCreate={this.showCreate}
-        />
+        <Banner {...bannerProps} tabs={this.tabs} tips={this.tips} />
+        {type === 'topology' ? (
+          <Topology match={match} />
+        ) : (
+          <Table
+            {...tableProps}
+            itemActions={this.itemActions}
+            tableActions={this.tableActions}
+            columns={this.getColumns()}
+            onCreate={this.showCreate}
+          />
+        )}
       </ListPage>
     )
   }

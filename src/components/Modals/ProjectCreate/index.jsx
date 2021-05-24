@@ -110,6 +110,13 @@ export default class ProjectCreateModal extends React.Component {
       return callback()
     }
 
+    if (value.indexOf('kube-') === 0) {
+      return callback({
+        message: t('Name validation failed'),
+        field: rule.field,
+      })
+    }
+
     const cluster =
       this.props.cluster || get(this.props.formTemplate, 'cluster')
 
@@ -213,7 +220,9 @@ export default class ProjectCreateModal extends React.Component {
                   { required: true, message: t('Please input name') },
                   {
                     pattern: PATTERN_SERVICE_NAME,
-                    message: `${t('Invalid name')}, ${t('SERVICE_NAME_DESC')}`,
+                    message: t('Invalid name', {
+                      message: t('SERVICE_NAME_DESC'),
+                    }),
                   },
                   { validator: this.nameValidator },
                 ]}

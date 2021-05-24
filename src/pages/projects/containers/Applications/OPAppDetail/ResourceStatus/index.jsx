@@ -16,15 +16,12 @@
  * along with KubeSphere Console.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { isEmpty, flatten } from 'lodash'
 import React from 'react'
-import { toJS } from 'mobx'
 import { observer, inject } from 'mobx-react'
-import Workloads from 'projects/components/Cards/Workloads'
 import Services from 'projects/components/Cards/Services'
-import Ingresses from '../../CRDAppDetail/Ingresses'
-
-import styles from './index.scss'
+import Workloads from 'projects/components/Cards/Workloads'
+import Ingresses from 'projects/components/Cards/Ingresses'
+import Volumes from 'projects/components/Cards/Volumes'
 
 @inject('detailStore')
 @observer
@@ -42,44 +39,35 @@ export default class ResourceStatus extends React.Component {
   }
 
   render() {
-    const { detail, isLoading } = toJS(this.store)
-
-    let workloads = []
-    if (!isEmpty(detail.workloads)) {
-      workloads = flatten(
-        Object.keys(detail.workloads).map(key =>
-          detail.workloads[key].map(item => ({
-            ...item,
-            type: key,
-          }))
-        )
-      )
-    }
+    const { cluster, namespace, selector } = this.store.detail
 
     return (
-      <div className={styles.main}>
-        {!isEmpty(detail.ingresses) && (
-          <Ingresses
-            data={detail.ingresses}
-            loading={isLoading}
-            prefix={`${this.prefix}/ingresses`}
-          />
-        )}
-        {!isEmpty(detail.services) && (
-          <Services
-            className="margin-t12"
-            data={detail.services}
-            loading={isLoading}
-            prefix={`${this.prefix}/services`}
-          />
-        )}
-        <Workloads
-          className="margin-t12"
-          data={workloads}
-          loading={isLoading}
+      <>
+        <Ingresses
+          selector={selector}
+          cluster={cluster}
+          namespace={namespace}
           prefix={this.prefix}
         />
-      </div>
+        <Services
+          selector={selector}
+          cluster={cluster}
+          namespace={namespace}
+          prefix={this.prefix}
+        />
+        <Workloads
+          selector={selector}
+          cluster={cluster}
+          namespace={namespace}
+          prefix={this.prefix}
+        />
+        <Volumes
+          selector={selector}
+          cluster={cluster}
+          namespace={namespace}
+          prefix={this.prefix}
+        />
+      </>
     )
   }
 }

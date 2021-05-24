@@ -118,7 +118,7 @@ export default class UserCreateModal extends Component {
           { required: true, message: t('Please input user name') },
           {
             pattern: PATTERN_NAME,
-            message: `${t('Invalid user name')}. ${t('USER_NAME_DESC')}`,
+            message: t('Invalid user name', { message: t('USER_NAME_DESC') }),
           },
           { validator: this.userNameValidator },
         ]
@@ -157,6 +157,7 @@ export default class UserCreateModal extends Component {
             autoComplete="nope"
             disabled={!!detail}
             autoFocus={true}
+            maxLength={32}
           />
         </Form.Item>
         <Form.Item label={t('Email')} desc={t('EMAIL_DESC')} rules={emailRules}>

@@ -29,6 +29,7 @@ const isDev = process.env.NODE_ENV === 'development'
 module.exports = {
   entry: {
     main: './src/core/index.js',
+    terminalEntry:'./src/core/terminal.js'
   },
   moduleRules: [
     {
@@ -37,15 +38,9 @@ module.exports = {
       use: 'happypack/loader?id=jsx',
     },
     {
-      test: /\.jsx?$/,
-      include: root('node_modules'),
-      use: 'cache-loader',
-    },
-    {
       test: /\.svg$/,
       issuer: { test: /\.jsx?$/ },
       use: [
-        { loader: 'cache-loader' },
         { loader: '@svgr/webpack', options: { icon: true } },
       ],
     },
@@ -88,7 +83,6 @@ module.exports = {
         browsers: ['>1%', 'last 4 versions', 'Firefox ESR', 'not ie < 9'],
         flexbox: 'no-2009',
       }),
-      require('postcss-remove-google-fonts'),
     ],
   },
 }

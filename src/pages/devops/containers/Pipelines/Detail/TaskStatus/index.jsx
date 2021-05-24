@@ -20,8 +20,8 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import classNames from 'classnames'
 import { observer, inject } from 'mobx-react'
-import { reaction } from 'mobx'
-import { get } from 'lodash'
+import { reaction, toJS } from 'mobx'
+import { get, isEmpty } from 'lodash'
 import { Button } from '@kube-design/components'
 import {
   addFullScreenChangeEvents,
@@ -71,7 +71,6 @@ export default class TaskStatus extends React.Component {
   get isQueued() {
     const { runDetail } = this.store
     const state = get(runDetail, 'state', '')
-
     return state === 'QUEUED'
   }
 
@@ -100,12 +99,11 @@ export default class TaskStatus extends React.Component {
   }
 
   handleFetch = () => {
-    const { params } = this.props.match
     const { runDetail } = this.store
-    if (get(runDetail, 'state') === 'QUEUED') {
-      return
+    if (!isEmpty(toJS(runDetail)) && !this.isQueued) {
+      const { params } = this.props.match
+      this.store.getNodesStatus(params)
     }
-    this.store.getNodesStatus(params)
   }
 
   toggleFullScreenState = () => {
@@ -180,13 +178,15 @@ export default class TaskStatus extends React.Component {
     </div>
   )
 
-  renderQueuedCard = () => (
+  renderQueuedCard = runDetail => (
     <div className={style.card}>
       <div>
         <span className={classNames(style.QueuedIcon, style.icon)} />
       </div>
       <div className={style.title}>{t('PIPELINE_QUEUED_TITLE')}</div>
-      <div className={style.desc}>{t('PIPELINE_QUEUED_DESC')}</div>
+      <div className={style.desc}>
+        {get(runDetail, 'causeOfBlockage') || t('PIPELINE_QUEUED_DESC')}
+      </div>
     </div>
   )
 
@@ -196,7 +196,7 @@ export default class TaskStatus extends React.Component {
 
     if (nodesStatus.length === 0) {
       if (this.isQueued) {
-        return this.renderQueuedCard()
+        return this.renderQueuedCard(runDetail)
       }
       if (this.hasRuning && !showErrorLog) {
         return this.renderLoadingCard()

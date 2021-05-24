@@ -21,7 +21,7 @@ import { toJS } from 'mobx'
 import { observer, inject } from 'mobx-react'
 
 import moment from 'moment-mini'
-import { get, isEmpty, has } from 'lodash'
+import { get, isEmpty, has, isArray, last } from 'lodash'
 
 import { Notify } from '@kube-design/components'
 import Status from 'devops/components/Status'
@@ -45,6 +45,8 @@ export default class PipelineDetailLayout extends React.Component {
     formTemplate: this.store.pipeLineConfig,
   }
 
+  module = 'pipelines'
+
   get store() {
     return this.props.pipelineStore
   }
@@ -61,7 +63,7 @@ export default class PipelineDetailLayout extends React.Component {
     const { cluster, devops } = this.props.match.params
 
     return globals.app.getActions({
-      module: 'pipelines',
+      module: this.module,
       cluster,
       devops,
     })
@@ -73,7 +75,7 @@ export default class PipelineDetailLayout extends React.Component {
 
     this.setBranchNames(toJS(detail.branchNames), params)
     this.getPipeLineConfig()
-    this.sonarqubeStore.fetchDetail(params)
+    this.getSonarqube()
   }
 
   fetchData = async () => {
@@ -84,7 +86,7 @@ export default class PipelineDetailLayout extends React.Component {
 
     this.setBranchNames(toJS(detail.branchNames), params)
     this.getPipeLineConfig()
-    this.sonarqubeStore.fetchDetail(params)
+    this.getSonarqube()
   }
 
   getPipeLineConfig = async () => {
@@ -99,15 +101,20 @@ export default class PipelineDetailLayout extends React.Component {
   }
 
   setBranchNames = (branchNames, params) => {
-    isEmpty(branchNames) ? (params.branch = 'master') : null
+    isArray(branchNames) && !isEmpty(branchNames)
+      ? (params.branch = branchNames[0])
+      : null
   }
 
   getSonarqube = () => {
-    const { params } = this.props.match
-    this.sonarqubeStore.fetchDetail(params)
+    if (get(globals, 'config.devops.sonarqubeURL')) {
+      const { params } = this.props.match
+      this.sonarqubeStore.fetchDetail(params)
+    }
   }
 
-  getUpTime = activityList => {
+  getUpTime = () => {
+    const { activityList } = this.store
     const updateTime = get(toJS(activityList.data), '[0].startTime', '')
     return !updateTime
       ? '-'
@@ -190,9 +197,37 @@ export default class PipelineDetailLayout extends React.Component {
     ]
   }
 
+  getCurrentState = () => {
+    const { activityList, branchList, pullRequestList } = this.store
+    const currentState = {
+      activity: get(toJS(activityList), 'data[0]', {}),
+      branch: get(toJS(branchList), 'data[0].latestRun', {}),
+      'pull-request': get(toJS(pullRequestList), 'data[0].latestRun', {}),
+    }
+
+    const currentLocation = last(this.props.location.pathname.split('/'))
+    return currentState[currentLocation] || currentState.activity
+  }
+
+  getPipelineStatus = status => {
+    const CONFIG = {
+      failed: { type: 'failure', label: t('Failure') },
+      pending: { type: 'running', label: t('Running') },
+      working: { type: 'running', label: t('Running') },
+      successful: { type: 'success', label: t('Success') },
+    }
+
+    return { ...CONFIG[status] }
+  }
+
   getAttrs = () => {
-    const { activityList } = this.store
     const { devopsName } = this.props.devopsStore
+
+    const syncStatus = get(
+      this.store.pipelineConfig,
+      'metadata.annotations["pipeline.devops.kubesphere.io/syncstatus"]'
+    )
+
     return [
       {
         name: t('DevOps Project'),
@@ -200,15 +235,15 @@ export default class PipelineDetailLayout extends React.Component {
       },
       {
         name: t('Status'),
-        value: (
-          <Status
-            {...getPipelineStatus(get(toJS(activityList.data), '[0]', {}))}
-          />
-        ),
+        value: <Status {...getPipelineStatus(this.getCurrentState())} />,
+      },
+      {
+        name: t('Sync Status'),
+        value: <Status {...this.getPipelineStatus(syncStatus)} />,
       },
       {
         name: t('Updated Time'),
-        value: this.getUpTime(activityList),
+        value: this.getUpTime(),
       },
     ]
   }
@@ -240,10 +275,15 @@ export default class PipelineDetailLayout extends React.Component {
   }
 
   render() {
-    const stores = { detailStore: this.store }
+    const stores = {
+      detailStore: this.store,
+      sonarqubeStore: this.sonarqubeStore,
+    }
+
     const operations = this.getOperations().filter(item =>
       this.enabledActions.includes(item.action)
     )
+
     const { formTemplate } = this.state
     const keyPath = has(formTemplate, 'pipeline')
       ? 'pipeline.description'
@@ -254,13 +294,11 @@ export default class PipelineDetailLayout extends React.Component {
 
     const sideProps = {
       module: this.module,
-      authKey: this.authKey,
       name: get(this.store.detail, 'name'),
       desc,
       operations,
       attrs: this.getAttrs(),
       labels: this.store.detail.labels,
-
       breadcrumbs: [
         {
           label: t('Pipeline List'),

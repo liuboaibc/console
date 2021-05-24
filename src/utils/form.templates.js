@@ -211,6 +211,15 @@ const getConfigmapTemplate = ({ namespace }) => ({
   },
 })
 
+const getServiceAccountTemplate = ({ namespace }) => ({
+  apiVersion: 'v1',
+  kind: 'ServiceAccount',
+  metadata: {
+    namespace,
+    labels: {},
+  },
+})
+
 const getSecretTemplate = ({ namespace }) => ({
   apiVersion: 'v1',
   kind: 'Secret',
@@ -362,6 +371,20 @@ const getAlertPolicyTemplate = ({ workspace, namespace } = {}) => ({
   },
 })
 
+const getCustomAlertPolicyTemplate = ({ namespace } = {}) => ({
+  name: '',
+  namespace,
+  query: '',
+  duration: '5m',
+  labels: {
+    severity: 'warning',
+  },
+  annotations: {
+    summary: '',
+    message: '',
+  },
+})
+
 const getApplicationTemplate = ({ namespace }) => ({
   apiVersion: 'app.k8s.io/v1beta1',
   kind: 'Application',
@@ -491,6 +514,86 @@ const getDashboardTemplate = ({ namespace }) => ({
   spec: {},
 })
 
+const getClusterDashboardTemplate = () => ({
+  apiVersion: 'monitoring.kubesphere.io/v1alpha1',
+  kind: 'ClusterDashboard',
+  metadata: {},
+  spec: {},
+})
+
+const getServiceMonitorTemplate = ({ name, namespace }) => ({
+  apiVersion: 'monitoring.coreos.com/v1',
+  kind: 'ServiceMonitor',
+  metadata: {
+    name,
+    namespace,
+  },
+  spec: {},
+})
+
+const getWorkspaceRoleBindingTemplate = ({ name, role }) => ({
+  kind: 'WorkspaceRoleBinding',
+  apiVersion: 'iam.kubesphere.io/v1alpha2',
+  subjects: [
+    {
+      kind: 'Group',
+      apiGroup: 'rbac.authorization.k8s.io',
+      name,
+    },
+  ],
+  roleRef: {
+    apiGroup: 'iam.kubesphere.io/v1alpha2',
+    kind: 'WorkspaceRole',
+    name: role,
+  },
+})
+
+const getRolebindingTemplate = ({ name, role }) => ({
+  subjects: [
+    {
+      kind: 'Group',
+      apiGroup: 'rbac.authorization.k8s.io',
+      name,
+    },
+  ],
+  roleRef: {
+    apiGroup: 'rbac.authorization.k8s.io',
+    kind: 'Role',
+    name: role,
+  },
+})
+
+const getGlobalSecretTemplate = ({ name }) => ({
+  apiVersion: 'v1',
+  kind: 'Secret',
+  metadata: {
+    name,
+  },
+  type: 'Opaque',
+})
+
+const getNotificationConfigTemplate = ({ name }) => ({
+  apiVersion: 'notification.kubesphere.io/v2beta1',
+  kind: 'Config',
+  metadata: {
+    name,
+  },
+  spec: {},
+})
+
+const getNotificationReceiverTemplate = ({ name, type }) => ({
+  apiVersion: 'notification.kubesphere.io/v2beta1',
+  kind: 'Receiver',
+  metadata: {
+    name,
+  },
+  spec: {
+    [type]: {
+      enabled: false,
+    },
+  },
+})
+
 const FORM_TEMPLATES = {
   deployments: getDeploymentTemplate,
   daemonsets: getDaemonSetTemplate,
@@ -500,6 +603,7 @@ const FORM_TEMPLATES = {
   services: getServiceTemplate,
   ingresses: getIngressTemplate,
   configmaps: getConfigmapTemplate,
+  serviceaccounts: getServiceAccountTemplate,
   secrets: getSecretTemplate,
   hpa: getHorizontalPodAutoscalerTemplate,
   roles: getRoleTemplate,
@@ -511,6 +615,7 @@ const FORM_TEMPLATES = {
   project: getProjectTemplate,
   limitRange: getLimitRangeTemplate,
   'alert-policies': getAlertPolicyTemplate,
+  rules: getCustomAlertPolicyTemplate,
   applications: getApplicationTemplate,
   strategies: getStrategyTemplate,
   strategyPolicy: getStrategyPolicyTemplate,
@@ -520,7 +625,14 @@ const FORM_TEMPLATES = {
   'volume-snapshots': getVolumeSnapshotTemplate,
   namespacenetworkpolicies: getNameSpaceNetworkPoliciesTemplate,
   dashboards: getDashboardTemplate,
+  clusterdashboards: getClusterDashboardTemplate,
   federated: getFederatedTemplate,
+  servicemonitors: getServiceMonitorTemplate,
+  workspacerolebinding: getWorkspaceRoleBindingTemplate,
+  rolebinding: getRolebindingTemplate,
+  globalsecret: getGlobalSecretTemplate,
+  notificationconfigs: getNotificationConfigTemplate,
+  notificationreceivers: getNotificationReceiverTemplate,
 }
 
 export default FORM_TEMPLATES

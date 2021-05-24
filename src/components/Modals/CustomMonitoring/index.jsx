@@ -19,6 +19,8 @@
 import React from 'react'
 import { Provider, observer } from 'mobx-react'
 
+import LabelStore from 'stores/monitoring/custom/labelsets'
+
 /**
  * All containers dependent CustomMonitoringStore and modalStore
  */
@@ -27,7 +29,7 @@ import Title from './containers/Title'
 import RefreshIntervalSelector from './containers/RefreshIntervalSelector'
 import TimeRangeSelect from './containers/TimeRangeSelect'
 import TextContainer from './containers/TextContainer'
-import MonitorView from './containers/MonitorView'
+import MonitorEditor from './containers/MonitorEditor'
 import GraphOverview from './containers/GraphOverview'
 import ThemeSwitchButton from './containers/ThemeSwitchButton'
 
@@ -38,7 +40,6 @@ import Layout from './components/Layout'
 import ModalStore from './store'
 
 /**
- * @TODO find a good dir to save
  * A container modal to handle custom monitoring template
  */
 @observer
@@ -53,24 +54,36 @@ export default class CustomMonitoringModal extends React.Component {
    */
   modalStore = new ModalStore()
 
-  /**
-   * check store saved status
-   */
-  handleCancel = () => {
-    this.props.onCancel()
+  labelStore = new LabelStore()
+
+  subForm = React.createRef()
+
+  handleSave = data => {
+    const { onOk } = this.props
+
+    if (this.subForm && this.subForm.current) {
+      this.subForm.current.handleSubmit()
+    }
+
+    onOk(data)
   }
 
   render() {
+    const { readOnly, onCancel, isSubmitting } = this.props
     const hasSelectedMonitor = this.modalStore.selectedMonitor
     const isEditing = this.store.isEditing
 
     const shouldMonitorDeatilShow = hasSelectedMonitor && isEditing
 
     return (
-      <Provider monitoringStore={this.store} modalStore={this.modalStore}>
+      <Provider
+        monitoringStore={this.store}
+        labelStore={this.labelStore}
+        modalStore={this.modalStore}
+      >
         <Modal
           theme={this.modalStore.theme}
-          onCancel={this.handleCancel}
+          onCancel={onCancel}
           title={<Title />}
           description={<Clock />}
           operations={
@@ -78,10 +91,10 @@ export default class CustomMonitoringModal extends React.Component {
               <ThemeSwitchButton />
               <TimeRangeSelect />
               <RefreshIntervalSelector />
-              {!this.props.readOnly && (
+              {!readOnly && (
                 <SwitchButton
-                  onSaveClick={this.props.onSave}
-                  isSubmitting={this.props.isSubmitting}
+                  onSaveClick={this.handleSave}
+                  isSubmitting={isSubmitting}
                 />
               )}
             </>
@@ -90,10 +103,11 @@ export default class CustomMonitoringModal extends React.Component {
           <Layout
             sidebar={<TextContainer />}
             content={
-              <>
-                {shouldMonitorDeatilShow && <MonitorView />}
-                <GraphOverview hidden={shouldMonitorDeatilShow} />
-              </>
+              shouldMonitorDeatilShow ? (
+                <MonitorEditor ref={this.subForm} />
+              ) : (
+                <GraphOverview />
+              )
             }
           />
         </Modal>

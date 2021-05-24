@@ -76,7 +76,7 @@ export default class DeleteModal extends React.Component {
     let tip =
       desc ||
       (resource && type
-        ? t.html('DELETE_CONFIRM_TIP', { type, resource })
+        ? t.html('DELETE_CONFIRM_TIP', { type: type.toLowerCase(), resource })
         : t.html('DELETE_TIP', { type, resource }))
 
     if (app) {

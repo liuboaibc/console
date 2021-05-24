@@ -125,6 +125,17 @@ export default class ContainerStore {
     this.watchHandler && this.watchHandler.abort()
   }
 
+  async checkPreviousLog({ cluster, namespace, podName, ...params }) {
+    const result = await request.get(
+      `${this.getDetailUrl({ cluster, namespace, podName })}/log`,
+      params,
+      {},
+      () => {}
+    )
+
+    return !!result
+  }
+
   @action
   async fetchAllLogs({ cluster, namespace, podName, ...params }) {
     return await request.get(
@@ -154,11 +165,11 @@ export default class ContainerStore {
       })}/registry/blob`,
       params,
       null,
-      e => e
+      (e, data) => data
     )
 
     if (get(result, 'status', 'succeeded') !== 'succeeded') {
-      return { status: 'failed' }
+      return { status: 'failed', message: result.message }
     }
 
     return ObjectMapper.imageBlob(result)

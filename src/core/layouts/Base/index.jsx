@@ -25,7 +25,6 @@ import { renderRoutes } from 'utils/router.config'
 
 import { Header, GlobalNav } from 'components/Layout'
 import Tools from 'components/KubeTools'
-import History from 'components/Modals/History'
 import GlobalSVG from 'components/SVG'
 
 import styles from './index.scss'
@@ -55,7 +54,6 @@ class BaseLayout extends Component {
 
   componentDidMount() {
     document.addEventListener('scroll', this.handleScroll)
-    document.addEventListener('keydown', this.handleKeyDown)
   }
 
   componentDidUpdate(prevProps) {
@@ -72,15 +70,6 @@ class BaseLayout extends Component {
 
   componentWillUnmount() {
     document.removeEventListener('scroll', this.throttleScroll)
-    document.removeEventListener('keydown', this.handleKeyDown)
-  }
-
-  handleKeyDown = e => {
-    if (e.code === 'F1' || (e.keyCode === 75 && e.metaKey)) {
-      e.stopPropagation()
-      e.preventDefault()
-      this.props.rootStore.toggleHistory()
-    }
   }
 
   handleScroll = () => {
@@ -140,12 +129,6 @@ class BaseLayout extends Component {
         )}
         <div className={styles.main}>{renderRoutes(this.routes)}</div>
         {globals.user && <Tools />}
-        {globals.user && (
-          <History
-            visible={rootStore.showHistory}
-            onCancel={rootStore.hideHistory}
-          />
-        )}
       </div>
     )
   }

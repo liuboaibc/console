@@ -81,8 +81,8 @@ export default class StepsEditor extends React.Component {
       container: t(
         'Specify a container to add nested tasks to execute inside the container'
       ),
-      echo: t('Can send messages in the build'),
-      mail: t('Can send messages by email'),
+      echo: t('Send messages in the build'),
+      mail: t('Send messages by email'),
       checkout: t('CHECKOUT_DESC'),
       dir: t('Change Current Directory'),
       archiveArtifacts: t('Save Artifact'),
@@ -160,6 +160,13 @@ export default class StepsEditor extends React.Component {
     this.stage.name = this.stageName || this.stage.name
 
     this.props.store.setValue(this.stage)
+  }
+
+  handleCreateCredential = async (data, callback) => {
+    const { devops, cluster } = this.props.store.params
+    await this.props.store.createCredential(data, { devops, cluster })
+    callback()
+    this.hideCreateCredential()
   }
 
   hideCreateCredential = async () => {
@@ -280,7 +287,7 @@ export default class StepsEditor extends React.Component {
         />
         <CredentialModal
           visible={this.state.showCredential}
-          onOk={this.hideCreateCredential}
+          onOk={this.handleCreateCredential}
           onCancel={this.hideCreateCredential}
           devops={devops}
           cluster={cluster}

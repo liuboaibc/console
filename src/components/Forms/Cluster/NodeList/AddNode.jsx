@@ -246,11 +246,11 @@ export default class AddNode extends Component {
           rules={[
             {
               required: true,
-              message: t('Please input the ip address'),
+              message: t('Please input the IP address'),
             },
             {
               pattern: PATTERN_IP,
-              message: t('Invalid ip address'),
+              message: t('Invalid IP address'),
             },
           ]}
         >
@@ -268,11 +268,11 @@ export default class AddNode extends Component {
               rules={[
                 {
                   required: true,
-                  message: t('Please input the ip address'),
+                  message: t('Please input the IP address'),
                 },
                 {
                   pattern: PATTERN_IP,
-                  message: t('Invalid ip address'),
+                  message: t('Invalid IP address'),
                 },
               ]}
             >

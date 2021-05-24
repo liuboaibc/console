@@ -79,7 +79,7 @@ export default class Nodes extends React.Component {
   }
 
   get itemActions() {
-    const { store, clusterStore, routing, trigger } = this.props
+    const { store, clusterStore, routing, trigger, name } = this.props
     return [
       {
         key: 'uncordon',
@@ -116,7 +116,7 @@ export default class Nodes extends React.Component {
         show: item => item.importStatus === 'failed',
         onClick: item =>
           trigger('resource.delete', {
-            type: t('Node'),
+            type: t(name),
             detail: item,
             success: routing.query,
           }),
@@ -159,7 +159,11 @@ export default class Nodes extends React.Component {
   }
 
   getData = async params => {
-    await this.store.fetchList({ ...params, ...this.props.match.params })
+    await this.store.fetchList({
+      ...params,
+      ...this.props.match.params,
+    })
+
     await this.monitoringStore.fetchMetrics({
       ...this.props.match.params,
       resources: this.store.list.data.map(node => node.name),

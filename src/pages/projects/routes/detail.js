@@ -29,12 +29,12 @@ import VolumeDetail from '../containers/Volumes/Detail'
 import VolumeSnapshotDetail from '../containers/VolumeSnapshots/Detail'
 import SecretDetail from '../containers/Secrets/Detail'
 import ConfigMapDetail from '../containers/ConfigMaps/Detail'
+import ServiceAccountDetail from '../containers/ServiceAccounts/Detail'
 import CRDAppDetail from '../containers/Applications/CRDAppDetail'
 import OPAppDetail from '../containers/Applications/OPAppDetail'
 import RoleDetail from '../containers/Roles/Detail'
 import ImageBuilderDetail from '../containers/ImageBuilder/Detail'
 import AlertPoliciesDetail from '../containers/Alerting/Policies/Detail'
-import AlertMessagesDetail from '../containers/Alerting/Messages/Detail'
 
 export default PATH => [
   {
@@ -90,6 +90,10 @@ export default PATH => [
     component: ConfigMapDetail,
   },
   {
+    path: `${PATH}/serviceAccounts/:name`,
+    component: ServiceAccountDetail,
+  },
+  {
     path: `${PATH}/applications/composing/:name`,
     component: CRDAppDetail,
   },
@@ -106,11 +110,7 @@ export default PATH => [
     component: ImageBuilderDetail,
   },
   {
-    path: `${PATH}/alert-policies/:name`,
+    path: [`${PATH}/alert-rules/builtin/:name`, `${PATH}/alert-rules/:name`],
     component: AlertPoliciesDetail,
-  },
-  {
-    path: `${PATH}/alert-messages/:id`,
-    component: AlertMessagesDetail,
   },
 ]

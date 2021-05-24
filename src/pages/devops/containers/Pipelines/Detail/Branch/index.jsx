@@ -16,17 +16,17 @@
  * along with KubeSphere Console.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { result, get, omit } from 'lodash'
+import { result, get, omit, isEmpty } from 'lodash'
 import React from 'react'
 import { toJS } from 'mobx'
 import { observer, inject } from 'mobx-react'
 import { parse } from 'qs'
 import { Link } from 'react-router-dom'
 import { Button, Notify } from '@kube-design/components'
-import { getLocalTime } from 'utils'
 import Status from 'devops/components/Status'
+import Health from 'devops/components/Health'
+import { getLocalTime } from 'utils'
 import { getPipelineStatus } from 'utils/status'
-import Health from 'projects/components/Health'
 import { ReactComponent as ForkIcon } from 'assets/fork.svg'
 
 import Table from 'components/Tables/List'
@@ -39,6 +39,8 @@ export default class Branch extends React.Component {
 
   store = this.props.detailStore || {}
 
+  refreshTimer = setInterval(() => this.refreshHandler(), 4000)
+
   get enabledActions() {
     const { cluster, devops } = this.props.match.params
 
@@ -49,24 +51,57 @@ export default class Branch extends React.Component {
     })
   }
 
+  get isRuning() {
+    const data = get(toJS(this.store), 'branchList.data', [])
+    const runingData = data.filter(item => {
+      const state = get(item, 'latestRun.state')
+      return state && state !== 'FINISHED' && state !== 'PAUSED'
+    })
+    return !isEmpty(runingData)
+  }
+
   componentDidMount() {
     const { params } = this.props.match
 
     this.unsubscribe = this.routing.history.subscribe(location => {
       if (location.pathname === this.props.match.url) {
         const query = parse(location.search.slice(1))
-        this.getData({ ...params, ...query })
+        this.store.getBranches({
+          ...params,
+          ...query,
+        })
       }
     })
   }
 
+  refreshHandler = () => {
+    if (this.isRuning) {
+      this.getData()
+    } else {
+      clearInterval(this.refreshTimer)
+      this.refreshTimer = null
+    }
+  }
+
+  componentDidUpdate() {
+    if (this.refreshTimer === null && this.isRuning) {
+      clearInterval(this.refreshTimer)
+      this.refreshTimer = setInterval(() => this.refreshHandler(), 4000)
+    }
+  }
+
   componentWillUnmount() {
+    clearInterval(this.refreshTimer)
     this.unsubscribe && this.unsubscribe()
   }
 
-  getData(params) {
+  getData() {
+    const { params } = this.props.match
+    const query = parse(location.search.slice(1))
+
     this.store.getBranches({
       ...params,
+      ...query,
     })
   }
 
@@ -83,7 +118,9 @@ export default class Branch extends React.Component {
       cluster: params.cluster,
       name: detail.name,
     })
+
     this.store.fetchDetail(params)
+
     Notify.success({
       content: t('Scan repo success'),
     })
@@ -99,9 +136,17 @@ export default class Branch extends React.Component {
 
   getColumns = () => [
     {
+      title: t('Status'),
+      dataIndex: 'status',
+      width: '20%',
+      render: (status, record) => (
+        <Status {...getPipelineStatus(get(record, 'latestRun', {}))} />
+      ),
+    },
+    {
       title: t('Name'),
       dataIndex: 'name',
-      width: '19%',
+      width: '20%',
       render: name => (
         <Link className="item-name" to={`${this.prefix}/${name}/activity`}>
           <ForkIcon style={{ width: '20px', height: '20px' }} />{' '}
@@ -110,29 +155,21 @@ export default class Branch extends React.Component {
       ),
     },
     {
-      title: t('Status'),
-      dataIndex: 'status',
-      width: '10%',
-      render: (status, record) => (
-        <Status {...getPipelineStatus(get(record, 'latestRun', {}))} />
-      ),
-    },
-    {
       title: t('WeatherScore'),
       dataIndex: 'weatherScore',
-      width: '15%',
+      width: '20%',
       render: weatherScore => <Health score={weatherScore} />,
     },
     {
       title: t('Last Message'),
       dataIndex: 'latestRun',
-      width: '15%',
+      width: '20%',
       render: latestRun => result(latestRun, 'causes[0].shortDescription', ''),
     },
     {
       title: t('Updated Time'),
       dataIndex: 'updateTime',
-      width: '15%',
+      width: '20%',
       render: (updateTime, record) =>
         getLocalTime(record.latestRun.startTime).format('YYYY-MM-DD HH:mm:ss'),
     },
@@ -144,9 +181,9 @@ export default class Branch extends React.Component {
     )
 
     const isEmptyList = isLoading === false && total === 0
-
     const omitFilters = omit(filters, 'page', 'workspace')
     const runnable = this.enabledActions.includes('edit')
+    const pagination = { total, page, limit }
 
     if (isEmptyList && !filters.page) {
       return (
@@ -160,11 +197,9 @@ export default class Branch extends React.Component {
       )
     }
 
-    const pagination = { total, page, limit }
-
     return (
       <Table
-        rowkey="name"
+        rowKey="displayName"
         data={data}
         columns={this.getColumns()}
         filters={omitFilters}

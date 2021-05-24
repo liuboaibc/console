@@ -107,7 +107,7 @@ export const getSuitableValue = (
   return `${count}${unitText}`
 }
 
-export const getValueByUnit = (num, unit) => {
+export const getValueByUnit = (num, unit, precision = 2) => {
   let value = parseFloat(num)
 
   switch (unit) {
@@ -175,13 +175,13 @@ export const getValueByUnit = (num, unit) => {
       break
   }
 
-  return Number(value) === 0 ? 0 : Number(value.toFixed(2))
+  return Number(value) === 0 ? 0 : Number(value.toFixed(precision))
 }
 
 export const getFormatTime = (ms, showDay) =>
   getLocalTime(Number(ms))
     .format(showDay ? 'MM-DD HH:mm' : 'HH:mm:ss')
-    .replace(/:00$/g, '')
+    .replace(/(\d+:\d+)(:00)$/g, '$1')
 
 export const getChartData = ({
   type,
@@ -189,6 +189,7 @@ export const getChartData = ({
   xKey = 'time',
   legend = [],
   valuesData = [],
+  dot = 2,
 }) => {
   /*
     build a value map => { 1566289260: {...} }
@@ -210,11 +211,11 @@ export const getChartData = ({
         }, {})
       }
 
-      if (key && valueMap[time]) {
+      if (key !== undefined && key !== null && valueMap[time]) {
         valueMap[time][key] =
           value === '-1'
             ? null
-            : getValueByUnit(value, isUndefined(unit) ? type : unit)
+            : getValueByUnit(value, isUndefined(unit) ? type : unit, dot)
       }
 
       if (!minX || minX > time) minX = time
@@ -256,6 +257,7 @@ export const getAreaChartOps = ({
     xKey,
     legend,
     valuesData,
+    dot: rest.dot,
   })
 
   return {

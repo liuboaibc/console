@@ -23,6 +23,7 @@ import { getQueryString } from 'utils'
 
 import UserStore from 'stores/user'
 import WebSocketStore from 'stores/websocket'
+import { get } from 'lodash'
 
 export default class RootStore {
   @observable
@@ -32,10 +33,10 @@ export default class RootStore {
   showGlobalNav = false
 
   @observable
-  showHistory = false
+  actions = {}
 
   @observable
-  actions = {}
+  oauthServers = []
 
   constructor() {
     this.websocket = new WebSocketStore()
@@ -71,16 +72,6 @@ export default class RootStore {
   }
 
   @action
-  toggleHistory = () => {
-    this.showHistory = !this.showHistory
-  }
-
-  @action
-  hideHistory = () => {
-    this.showHistory = false
-  }
-
-  @action
   registerActions = actions => {
     extendObservable(this.actions, actions)
   }
@@ -90,14 +81,17 @@ export default class RootStore {
     this.actions[id] && this.actions[id].on(...rest)
   }
 
-  @action
-  async login(params) {
-    return await request.post('login', params)
+  login(params) {
+    return request.post('login', params)
   }
 
   @action
   async logout() {
-    await request.post('logout')
+    const res = await request.post('logout')
+    const url = get(res, 'data.url')
+    if (url) {
+      window.location.href = url
+    }
   }
 
   @action

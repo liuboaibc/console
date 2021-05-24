@@ -144,6 +144,9 @@ export default class PipelineCard extends React.Component {
           </div>
         )
       }
+
+      const hasAuthority = get(hasInputStep, 'aprovable')
+
       return (
         <div
           className={classNames(
@@ -172,6 +175,7 @@ export default class PipelineCard extends React.Component {
                     type="primary"
                     loading={this.state.runLoading}
                     onClick={this.handleProceed(hasInputStep, node.id)}
+                    disabled={!hasAuthority}
                   >
                     {t(get(hasInputStep, 'input.ok') || 'Proceed')}
                   </Button>
@@ -180,6 +184,7 @@ export default class PipelineCard extends React.Component {
                     type="danger"
                     loading={this.state.runLoading}
                     onClick={this.handleBreak(hasInputStep, node.id)}
+                    disabled={!hasAuthority}
                   >
                     {t('Break')}
                   </Button>
@@ -267,16 +272,16 @@ export default class PipelineCard extends React.Component {
     if (Array.isArray(nodes)) {
       return (
         <div className={style.pipeline_column}>
-          {nodes.map((node, columeIndex) => (
+          {nodes.map((node, columnIndex) => (
             <div
               key={JSON.stringify(node)}
               ref={dom => {
-                columeIndex
-                  ? (this.domTree[columeIndex] = dom)
+                columnIndex
+                  ? (this.domTree[columnIndex] = dom)
                   : (this.domTree = [dom])
               }}
             >
-              {this.renderCard(node, columeIndex)}
+              {this.renderCard(node, columnIndex)}
             </div>
           ))}
         </div>

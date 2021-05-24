@@ -24,8 +24,9 @@ import { Loading } from '@kube-design/components'
 
 import { getDisplayName, getLocalTime } from 'utils'
 import { trigger } from 'utils/action'
-import AppStore from 'stores/application/crd'
 
+import AppStore from 'stores/application/crd'
+import { Status } from 'components/Base'
 import DetailPage from 'projects/containers/Base/Detail'
 
 import routes from './routes'
@@ -79,12 +80,24 @@ export default class CRDAppDetail extends React.Component {
     {
       key: 'addComponent',
       icon: 'add',
-      text: t('Add Component'),
+      text: t('Add Service'),
       action: 'edit',
       onClick: () =>
-        this.trigger('crd.app.addcomponent', {
+        this.trigger('crd.app.addservice', {
+          success: this.fetchComponents,
           detail: toJS(this.store.detail),
+          ...this.props.match.params,
+        }),
+    },
+    {
+      key: 'addRoute',
+      icon: 'add',
+      text: t('Add Route'),
+      action: 'edit',
+      onClick: () =>
+        this.trigger('crd.app.addroute', {
           success: this.fetchData,
+          detail: toJS(this.store.detail),
           ...this.props.match.params,
         }),
     },
@@ -121,6 +134,10 @@ export default class CRDAppDetail extends React.Component {
       {
         name: t('Project'),
         value: namespace,
+      },
+      {
+        name: t('Status'),
+        value: <Status name={t(detail.status)} type={detail.status} />,
       },
       {
         name: t('Application'),

@@ -22,7 +22,9 @@ import PropTypes from 'prop-types'
 import { Modal } from 'components/Base'
 import CodeEditor from 'components/Base/CodeEditor'
 import PipelineStore from 'stores/devops/pipelines'
+import ConfirmModal from 'components/Modals/Delete'
 
+import { isEqual } from 'lodash'
 import styles from './index.scss'
 
 export default class JenkinsEdit extends React.Component {
@@ -41,7 +43,11 @@ export default class JenkinsEdit extends React.Component {
   constructor(props) {
     super(props)
     this.store = new PipelineStore()
-    this.state = { value: props.defaultValue, isLoading: false }
+    this.state = {
+      value: props.defaultValue,
+      isLoading: false,
+      isshowComfirm: false,
+    }
   }
 
   componentDidUpdate(prevProps) {
@@ -49,6 +55,25 @@ export default class JenkinsEdit extends React.Component {
     if (visible && !prevProps.visible && defaultValue) {
       this.setState({ value: defaultValue })
     }
+  }
+
+  showConfirm = () => {
+    const { defaultValue } = this.props
+    const { value } = this.state
+    if (!isEqual(defaultValue, value)) {
+      this.setState({ isshowComfirm: true })
+    } else {
+      this.props.onCancel()
+    }
+  }
+
+  hideConfirm = () => {
+    this.setState({ isshowComfirm: false })
+  }
+
+  handleCancel = () => {
+    this.hideConfirm()
+    this.props.onCancel()
   }
 
   handleChange = value => {
@@ -98,45 +123,54 @@ export default class JenkinsEdit extends React.Component {
   }
 
   render() {
-    const { visible, onCancel } = this.props
+    const { visible } = this.props
 
     return (
-      <Modal
-        icon="cogwheel"
-        width={900}
-        bodyClassName={styles.body}
-        isSubmitting={this.props.isSubmitting || this.state.isLoading}
-        onCancel={onCancel}
-        onOk={this.handleOk}
-        renderFooter={this.renderFooter}
-        visible={visible}
-        closable={false}
-        maskClosable={false}
-        title={t('Jenkinsfile')}
-      >
-        <>
-          <CodeEditor
-            className={styles.codeEditor}
-            name="script"
-            mode="groovy"
-            value={this.state.value}
-            onChange={this.handleChange}
-            options={
-              this.state.error && {
-                annotations: [this.state.error],
+      <>
+        <Modal
+          icon="cogwheel"
+          width={900}
+          bodyClassName={styles.body}
+          isSubmitting={this.props.isSubmitting || this.state.isLoading}
+          onCancel={this.showConfirm}
+          onOk={this.handleOk}
+          renderFooter={this.renderFooter}
+          visible={visible}
+          closable={false}
+          maskClosable={false}
+          title={t('Jenkinsfile')}
+        >
+          <>
+            <CodeEditor
+              className={styles.codeEditor}
+              name="script"
+              mode="groovy"
+              value={this.state.value}
+              onChange={this.handleChange}
+              options={
+                this.state.error && {
+                  annotations: [this.state.error],
+                }
               }
-            }
-          />
-          {this.state.error && (
-            <div className={styles.checkResult}>
-              <img src="/assets/error.svg" />
-              <span>
-                {t('JENKINS_LINS_ERROR', { line: this.state.error.row + 1 })}
-              </span>
-            </div>
-          )}
-        </>
-      </Modal>
+            />
+            {this.state.error && (
+              <div className={styles.checkResult}>
+                <img src="/assets/error.svg" />
+                <span>
+                  {t('JENKINS_LINS_ERROR', { line: this.state.error.row + 1 })}
+                </span>
+              </div>
+            )}
+          </>
+        </Modal>
+        <ConfirmModal
+          visible={this.state.isshowComfirm}
+          onCancel={this.hideConfirm}
+          onOk={this.handleCancel}
+          title={t('Close')}
+          desc={t('Are you sure to close this jenkinsfile Editor ?')}
+        />
+      </>
     )
   }
 }

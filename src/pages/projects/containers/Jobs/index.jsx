@@ -64,7 +64,7 @@ export default class Jobs extends React.Component {
   }
 
   get itemActions() {
-    const { trigger, store } = this.props
+    const { trigger, store, name } = this.props
     return [
       {
         key: 'edit',
@@ -91,7 +91,7 @@ export default class Jobs extends React.Component {
         type: 'danger',
         onClick: item =>
           trigger('resource.delete', {
-            type: t(this.name),
+            type: t(name),
             detail: item,
           }),
       },
@@ -159,9 +159,10 @@ export default class Jobs extends React.Component {
   }
 
   showCreate = () => {
-    const { match, module } = this.props
+    const { match, module, projectStore } = this.props
     return this.props.trigger('workload.create', {
       module,
+      projectDetail: projectStore.detail,
       namespace: match.params.namespace,
       cluster: match.params.cluster,
     })

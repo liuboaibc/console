@@ -34,15 +34,18 @@ export default class Repo extends Base {
     let prefix = this.baseUrl
 
     if (workspace) {
-      prefix += `workspaces/${workspace}/`
+      prefix += `/workspaces/${workspace}`
     }
 
     if (repo_id) {
-      return `${prefix}repos/${repo_id}/${name || ''}`
+      return `${prefix}/repos/${repo_id}/${name || ''}`
     }
 
-    return `${prefix}repos`
+    return `${prefix}/repos`
   }
+
+  getWatchListUrl = ({ workspace } = {}) =>
+    `apis/application.kubesphere.io/v1alpha1/watch/helmrepos?labelSelector=kubesphere.io/workspace=${workspace}`
 
   @action
   fetchDetail = async ({ workspace, repo_id } = {}) => {

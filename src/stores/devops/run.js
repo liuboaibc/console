@@ -99,10 +99,22 @@ export default class PipelineRunStore extends BaseStore {
       }/runs/${runId}/`,
       {
         start: (page - 1) * TABLE_LIMIT || 0,
+        limit: TABLE_LIMIT,
       }
     )
     const data = []
-    if (result.pullRequest) {
+
+    if (result.changeSet && isArray(result.changeSet)) {
+      const changeSet = result.changeSet[0]
+      const commitBody = {
+        commitId: get(changeSet, 'commitId'),
+        startTime: get(result, 'startTime'),
+        url: get(changeSet, 'url'),
+        author: get(changeSet, 'author.fullName'),
+        title: get(changeSet, 'msg'),
+      }
+      data.push(commitBody)
+    } else if (result.pullRequest) {
       const commitBody = {
         commitId: get(result, 'commitId'),
         startTime: get(result, 'startTime'),
@@ -144,14 +156,14 @@ export default class PipelineRunStore extends BaseStore {
       }/runs/${runId}/artifacts/`,
       {
         start: (page - 1) * TABLE_LIMIT || 0,
-        limit: 100,
+        limit: TABLE_LIMIT,
       }
     )
 
     this.artifactsList = {
       data: result || [],
       total: result.length,
-      limit: 100,
+      limit: TABLE_LIMIT,
       page: parseInt(page, 10) || 1,
       filters: omit(filters, 'devops'),
       isLoading: false,

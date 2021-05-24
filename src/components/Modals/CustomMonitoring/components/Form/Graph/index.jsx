@@ -45,16 +45,16 @@ const formatOpts = Object.keys(unitTransformMap).map(format => ({
   value: format,
 }))
 
-export default class SingleStatDataForm extends Component {
+export default class Graph extends Component {
   render() {
-    const { supportMetrics } = this.props
+    const { supportMetrics, labelsets, onLabelSearch } = this.props
     return (
       <div className={styles.wrapper}>
         <FormGroupCard label={t('Basic Info')}>
           <Form.Item>
             <Columns>
               <Column>
-                <Form.Item rules={[{ required: true }]}>
+                <Form.Item>
                   <FormItemContainer name={'title'}>
                     {({ onChange, value }) => (
                       <Field label={t('GRAPH_NAME')}>
@@ -114,6 +114,8 @@ export default class SingleStatDataForm extends Component {
                   onUpClick={onUpClick}
                   onDownClick={onDownClick}
                   prefix={formItemName}
+                  labelsets={labelsets}
+                  onLabelSearch={onLabelSearch}
                   supportMetrics={supportMetrics}
                 />
               )}

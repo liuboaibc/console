@@ -68,7 +68,7 @@ export default class Deployments extends React.Component {
   }
 
   get itemActions() {
-    const { module, trigger } = this.props
+    const { module, trigger, name } = this.props
     return [
       {
         key: 'edit',
@@ -108,7 +108,7 @@ export default class Deployments extends React.Component {
         action: 'delete',
         onClick: item =>
           trigger('workload.delete', {
-            type: t(this.name),
+            type: t(name),
             detail: item,
           }),
       },
@@ -205,9 +205,10 @@ export default class Deployments extends React.Component {
   }
 
   showCreate = () => {
-    const { match, module } = this.props
+    const { match, module, projectStore } = this.props
     return this.props.trigger('workload.create', {
       module,
+      projectDetail: projectStore.detail,
       namespace: match.params.namespace,
       cluster: match.params.cluster,
     })

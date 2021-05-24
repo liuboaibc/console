@@ -22,7 +22,7 @@ import React from 'react'
 import { mergeLabels, updateFederatedAnnotations } from 'utils'
 import ServiceStore from 'stores/service'
 
-import CreateServiceModal from 'projects/components/Modals/ServiceCreate/InApp'
+import CreateAppServiceModal from 'projects/components/Modals/CreateAppService'
 import ServiceList from './ServiceList'
 
 import styles from './index.scss'
@@ -32,7 +32,6 @@ export default class Services extends React.Component {
 
   state = {
     components: omit(this.props.formData, ['application', 'ingress']) || {},
-    componentsError: '',
     editData: {},
     showAdd: false,
   }
@@ -51,12 +50,6 @@ export default class Services extends React.Component {
   }
 
   validate(callback) {
-    if (Object.keys(this.state.components).length <= 0) {
-      return this.setState({
-        componentsError: t('Service components should not be empty'),
-      })
-    }
-
     callback && callback()
   }
 
@@ -156,12 +149,18 @@ export default class Services extends React.Component {
     this.updateGovernance(data)
 
     const key = get(data, 'service.metadata.name')
+    const oldName = get(this.state.editData, 'Service.metadata.name')
     this.setState(
-      ({ components }) => ({
-        components: { ...components, [key]: data },
-        componentsError: '',
-      }),
+      ({ components }) => {
+        if (oldName && components[oldName]) {
+          delete components[oldName]
+        }
+        return { components: { ...components, [key]: data }, editData: {} }
+      },
       () => {
+        if (oldName) {
+          delete this.props.formData[oldName]
+        }
         this.props.formData[key] = data
         this.updateComponentKind()
         this.hideAdd()
@@ -184,7 +183,7 @@ export default class Services extends React.Component {
 
   render() {
     const { cluster, namespace, isFederated, projectDetail } = this.props
-    const { components, showAdd, editData, componentsError } = this.state
+    const { components, showAdd, editData } = this.state
 
     return (
       <div className={styles.wrapper}>
@@ -195,14 +194,13 @@ export default class Services extends React.Component {
         <div className={styles.title}>{t('Application Components')}</div>
         <div className={styles.components}>
           <ServiceList
-            error={componentsError}
             data={components}
             clusters={projectDetail.clusters}
             onAdd={this.showAdd}
             onDelete={this.handleDelete}
           />
         </div>
-        <CreateServiceModal
+        <CreateAppServiceModal
           cluster={cluster}
           namespace={namespace}
           detail={editData}

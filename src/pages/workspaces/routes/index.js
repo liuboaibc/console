@@ -16,13 +16,13 @@
  * along with KubeSphere Console.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { getIndexRoute } from 'utils/router.config'
-
 import ListLayout from '../containers/Base/List'
 
 import BaseInfo from '../containers/BaseInfo'
+import QuotaManage from '../containers/QuotaManage'
 import Roles from '../containers/Roles'
 import Members from '../containers/Members'
+import Groups from '../containers/Groups'
 import Projects from '../containers/Projects'
 import FedProjects from '../containers/FedProjects'
 import DevOps from '../containers/DevOps'
@@ -72,6 +72,11 @@ export default [
         exact: true,
       },
       {
+        path: `${PATH}/quota`,
+        component: QuotaManage,
+        exact: true,
+      },
+      {
         path: `${PATH}/roles`,
         component: Roles,
         exact: true,
@@ -81,8 +86,11 @@ export default [
         component: Members,
         exact: true,
       },
-      getIndexRoute({ path: PATH, to: `${PATH}/overview`, exact: true }),
-      getIndexRoute({ path: '*', to: '/404', exact: true }),
+      {
+        path: `${PATH}/groups`,
+        component: Groups,
+        exact: true,
+      },
     ],
   },
 ]

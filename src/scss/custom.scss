@@ -196,3 +196,20 @@
 .form-group {
   background-color: #fff;
 }
+
+.datepicker {
+  width: 100%;
+}
+
+.select {
+  max-width: 100%;
+}
+
+.tooltip-desc {
+  color: $dark-color01 !important;
+}
+
+.tag-critical {
+  color: $white;
+  background-color: $red-color03;
+}

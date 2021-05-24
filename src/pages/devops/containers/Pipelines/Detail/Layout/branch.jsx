@@ -17,20 +17,22 @@
  */
 
 import React from 'react'
+import { Notify } from '@kube-design/components'
+
 import { toJS } from 'mobx'
 import { observer, inject } from 'mobx-react'
 import moment from 'moment-mini'
-import { get } from 'lodash'
+import { get, debounce } from 'lodash'
 
-import { ReactComponent as ForkIcon } from 'assets/fork.svg'
 import Status from 'devops/components/Status'
 import CodeQualityStore from 'stores/devops/codeQuality'
 import DetailPage from 'devops/containers/Base/Detail'
+import Nav from 'devops/components/DetailNav'
 
+import { ReactComponent as ForkIcon } from 'assets/fork.svg'
 import { getPipelineStatus } from 'utils/status'
 import { trigger } from 'utils/action'
 
-import Nav from 'devops/components/DetailNav'
 import './index.scss'
 
 @inject('rootStore', 'devopsStore', 'pipelineStore')
@@ -39,8 +41,18 @@ import './index.scss'
 export default class BranchDetailLayout extends React.Component {
   sonarqubeStore = new CodeQualityStore()
 
+  module = 'pipelines'
+
   get store() {
     return this.props.pipelineStore
+  }
+
+  get routing() {
+    return this.props.rootStore.routing
+  }
+
+  get isAtBranchDetailPage() {
+    return this.props.match.params.branch
   }
 
   get createTime() {
@@ -62,7 +74,7 @@ export default class BranchDetailLayout extends React.Component {
     const { cluster, devops } = this.props.match.params
 
     return globals.app.getActions({
-      module: 'pipelines',
+      module: this.module,
       cluster,
       devops,
     })
@@ -80,9 +92,10 @@ export default class BranchDetailLayout extends React.Component {
   }
 
   getSonarqube = () => {
-    const { params } = this.props.match
-
-    this.sonarqubeStore.fetchDetail(params)
+    if (get(globals, 'config.devops.sonarqubeURL')) {
+      const { params } = this.props.match
+      this.sonarqubeStore.fetchDetail(params)
+    }
   }
 
   getOperations = () => [
@@ -119,7 +132,7 @@ export default class BranchDetailLayout extends React.Component {
     ]
   }
 
-  handleRun = async () => {
+  handleRun = debounce(async () => {
     const { branchDetail } = this.store
     const { params } = this.props.match
     const isMultibranch = branchDetail.branchNames
@@ -128,15 +141,25 @@ export default class BranchDetailLayout extends React.Component {
 
     if (isMultibranch || hasParameters) {
       this.trigger('pipeline.params', {
-        devops: this.devops,
-        cluster: this.cluster,
+        devops: params.devops,
+        cluster: params.cluster,
         params,
-        success: this.fetchData,
+        branches: this.isAtBranchDetailPage ? null : [toJS(branchDetail.name)],
+        parameters: toJS(branchDetail.parameters),
+        success: () => {
+          Notify.success({ content: `${t('Run Start')}` })
+          this.handleFetch()
+        },
       })
     } else {
+      Notify.success({ content: `${t('Run Start')}` })
       await this.store.runBranch(params)
-      this.store.getActivities(params)
+      this.handleFetch()
     }
+  }, 500)
+
+  handleFetch = (params, refresh) => {
+    this.routing.query(params, refresh)
   }
 
   renderNav = () => {
@@ -151,7 +174,10 @@ export default class BranchDetailLayout extends React.Component {
   }
 
   render() {
-    const stores = { detailStore: this.store }
+    const stores = {
+      detailStore: this.store,
+      sonarqubeStore: this.sonarqubeStore,
+    }
     const { params } = this.props.match
     const { branch } = params
 
@@ -170,7 +196,7 @@ export default class BranchDetailLayout extends React.Component {
       name: decodeURIComponent(branch),
       operations,
       attrs: this.getAttrs(),
-
+      module: this.module,
       breadcrumbs: [
         {
           label: t('Branch'),

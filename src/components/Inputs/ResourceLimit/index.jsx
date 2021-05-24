@@ -19,7 +19,7 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import classnames from 'classnames'
-import { get, set, debounce } from 'lodash'
+import { get, set } from 'lodash'
 import isEqual from 'react-fast-compare'
 
 import { Icon, Input, Columns, Column, Alert } from '@kube-design/components'
@@ -35,11 +35,13 @@ export default class ResourceLimit extends React.Component {
     value: PropTypes.object,
     defaultValue: PropTypes.object,
     onChange: PropTypes.func,
+    onError: PropTypes.func,
   }
 
   static defaultProps = {
     value: {},
     onChange() {},
+    onError() {},
     cpuProps: {},
     memoryProps: {},
   }
@@ -197,28 +199,26 @@ export default class ResourceLimit extends React.Component {
     let memoryError = ''
     const { requests, limits } = state
 
-    if (Number(requests.cpu) > Number(limits.cpu)) {
+    if (limits.cpu && Number(requests.cpu) > Number(limits.cpu)) {
       cpuError = 'RequestExceed'
     }
 
-    if (Number(requests.memory) > Number(limits.memory)) {
+    if (limits.memory && Number(requests.memory) > Number(limits.memory)) {
       memoryError = 'RequestExceed'
     }
 
     return { cpuError, memoryError }
   }
 
-  triggerChange = debounce(() => {
-    const { onChange } = this.props
+  triggerChange = () => {
+    const { onChange, onError } = this.props
     const { requests, limits, cpuError, memoryError } = this.state
     const { unit: memoryUnit } = this.getMemoryProps()
     let { unit: cpuUnit } = this.getCPUProps()
 
     cpuUnit = cpuUnit === 'Core' ? '' : cpuUnit
 
-    if (cpuError || memoryError) {
-      return
-    }
+    onError(cpuError || memoryError)
 
     const result = {}
     if (requests.cpu > 0 && requests.cpu < Infinity) {
@@ -235,7 +235,7 @@ export default class ResourceLimit extends React.Component {
     }
 
     onChange(result)
-  }, 200)
+  }
 
   handleCPUChange = value => {
     this.setState(

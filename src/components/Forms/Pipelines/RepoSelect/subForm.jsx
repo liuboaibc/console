@@ -19,9 +19,9 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import classNames from 'classnames'
-import { observable } from 'mobx'
+import { observable, toJS } from 'mobx'
 import { observer } from 'mobx-react'
-import { get, isEmpty, omitBy } from 'lodash'
+import { get, has, isEmpty, omitBy } from 'lodash'
 import { Icon } from '@kube-design/components'
 import SCMStore from 'stores/devops/scm'
 import { REPO_TYPES, REPO_KEY_MAP } from 'utils/constants'
@@ -34,6 +34,8 @@ import GithubForm from './GithubForm'
 import SvnForm from './SVNForm'
 import BitBucketForm from './BitBucketForm'
 import styles from './index.scss'
+import GitLabForm from './GitLabForm'
+import { compareVersion } from '../../../../utils'
 
 @observer
 export default class RepoSelectForm extends React.Component {
@@ -68,6 +70,9 @@ export default class RepoSelectForm extends React.Component {
   source_type = 'github'
 
   @observable
+  credentialFormData = { type: 'username_password' }
+
+  @observable
   showCredential = false
 
   componentDidMount() {
@@ -100,14 +105,26 @@ export default class RepoSelectForm extends React.Component {
     }
   }
 
+  setCredentialsFormData = params => {
+    if (has(params, 'type')) {
+      this.credentialFormData = { ...params }
+    }
+  }
+
   showCreateCredential = () => {
     this.showCredential = true
   }
 
   hideCreateCredential = async () => {
-    const { devops, cluster } = this.props
-    await this.store.getCredentials({ devops, cluster })
     this.showCredential = false
+  }
+
+  handleCreateCredential = async (data, callback) => {
+    const { devops, cluster } = this.props
+    await this.store.createCredential(data, { devops, cluster })
+    await this.store.getCredentials({ devops, cluster })
+    callback()
+    this.hideCreateCredential()
   }
 
   handleGoBack = () => {
@@ -142,13 +159,24 @@ export default class RepoSelectForm extends React.Component {
           })
         }
 
+        if (this.source_type === 'gitlab') {
+          onSave('gitlab', {
+            gitlab_source: {
+              ...formData.gitlab_source,
+              discover_branches: 1,
+              discover_pr_from_forks: { strategy: 2, trust: 2 },
+              discover_pr_from_origin: 2,
+              discover_tags: true,
+            },
+          })
+        }
+
         if (['svn', 'single_svn'].includes(this.source_type)) {
           const type = get(formData, 'svn_source.type', 'svn')
           onSave(type, {
             [REPO_KEY_MAP[type]]: {
               ...formData.svn_source,
               remote: get(formData, 'svn_source.remote', '').trim(),
-              discover_branches: true,
             },
           })
         }
@@ -161,33 +189,49 @@ export default class RepoSelectForm extends React.Component {
     const { type } = e.currentTarget.dataset
 
     this.source_type = type
+
+    this.credentialFormData = {
+      type: 'username_password',
+    }
+
     this.store.resetStore()
   }
 
   renderTypes() {
-    const { enableTypeChange } = this.props
+    const { enableTypeChange, cluster } = this.props
     const sourceType =
       this.source_type === 'single_svn' ? 'svn' : this.source_type
+    const clusterVersion = globals.app.isMultiCluster
+      ? get(globals, `clusterConfig.${cluster}.ksVersion`)
+      : get(globals, 'ksConfig.ksVersion')
+
+    const needUpdata = compareVersion(clusterVersion, '3.1.0')
+
     return (
       <ul className={styles.repoTypes}>
-        {REPO_TYPES.map(type => (
-          <li
-            className={classNames({
-              [styles.selectType]: type.value === sourceType,
-              [styles.disabled]: !enableTypeChange && sourceType !== type.value,
-            })}
-            key={type.value}
-            data-type={type.value}
-            onClick={this.handleTypeChange}
-          >
-            <Icon
-              name={type.icon}
-              type={type.value === sourceType ? 'light' : 'dark'}
-              size={32}
-            />
-            <span>{type.name}</span>
-          </li>
-        ))}
+        {REPO_TYPES.map(type => {
+          if (needUpdata && type.value === 'gitlab') return false
+
+          return (
+            <li
+              className={classNames({
+                [styles.selectType]: type.value === sourceType,
+                [styles.disabled]:
+                  !enableTypeChange && sourceType !== type.value,
+              })}
+              key={type.value}
+              data-type={type.value}
+              onClick={this.handleTypeChange}
+            >
+              <Icon
+                name={type.icon}
+                type={type.value === sourceType ? 'light' : 'dark'}
+                size={32}
+              />
+              <span>{type.name}</span>
+            </li>
+          )
+        })}
       </ul>
     )
   }
@@ -200,6 +244,8 @@ export default class RepoSelectForm extends React.Component {
           store={this.store}
           formRef={this.formRef}
           handleSubmit={this.handleSubmit}
+          showCredential={this.showCreateCredential}
+          setCredentialsFormData={this.setCredentialsFormData}
           cluster={cluster}
           devops={devops}
         />
@@ -225,9 +271,23 @@ export default class RepoSelectForm extends React.Component {
         <BitBucketForm
           store={this.store}
           formRef={this.formRef}
+          showCredential={this.showCreateCredential}
           handleSubmit={this.handleSubmit}
           cluster={cluster}
           devops={devops}
+        />
+      )
+    }
+
+    if (this.source_type === 'gitlab') {
+      return (
+        <GitLabForm
+          store={this.store}
+          formRef={this.formRef}
+          handleSubmit={this.handleSubmit}
+          cluster={cluster}
+          devops={devops}
+          showCredential={this.showCreateCredential}
         />
       )
     }
@@ -261,10 +321,12 @@ export default class RepoSelectForm extends React.Component {
         </div>
         <CredentialModal
           visible={this.showCredential}
-          onOk={this.hideCreateCredential}
+          onOk={this.handleCreateCredential}
           onCancel={this.hideCreateCredential}
           devops={devops}
           cluster={cluster}
+          formTemplate={toJS(this.credentialFormData)}
+          sourceType={this.source_type}
         />
       </div>
     )

@@ -25,7 +25,6 @@ import {
   isEmpty,
   omit,
   omitBy,
-  uniqBy,
   find,
   keyBy,
   includes,
@@ -34,7 +33,6 @@ import {
 } from 'lodash'
 import {
   safeParseJSON,
-  generateId,
   getDescription,
   getAliasName,
   getResourceCreator,
@@ -55,12 +53,27 @@ const getOriginData = item =>
     'metadata.uid',
     'metadata.selfLink',
     'metadata.generation',
-    'metadata.finalizers',
     'metadata.ownerReferences',
     'metadata.resourceVersion',
     'metadata.creationTimestamp',
     'metadata.managedFields',
   ])
+
+const getServedVersion = item => {
+  const versions = get(item, 'spec.versions', [])
+  if (versions.length === 0) {
+    return ''
+  }
+  let servedVersion = get(versions[versions.length - 1], 'name')
+  versions.some(ver => {
+    if (get(ver, 'served', false)) {
+      servedVersion = get(ver, 'name', servedVersion)
+      return true
+    }
+    return false
+  })
+  return servedVersion
+}
 
 const getBaseInfo = item => ({
   uid: get(item, 'metadata.uid'),
@@ -137,6 +150,7 @@ const UserMapper = item => ({
     'metadata.annotations["iam.kubesphere.io/role-binding"]',
     ''
   ),
+  groups: get(item, 'spec.groups', []),
   status: get(item, 'status.state', 'Pending'),
   conditions: get(item, 'status.conditions', []),
   lastLoginTime: get(item, 'status.lastLoginTime'),
@@ -149,7 +163,6 @@ const NamespaceMapper = item => ({
   annotations: get(item, 'metadata.annotations', {}),
   workspace: get(item, 'metadata.labels["kubesphere.io/workspace"]', ''),
   status: get(item, 'status.phase'),
-  opRuntime: get(item, 'metadata.annotations.openpitrix_runtime'),
   isFedHostNamespace:
     get(item, 'metadata.labels["kubesphere.io/kubefed-host-namespace"]') ===
     'true',
@@ -677,6 +690,16 @@ const ConfigmapMapper = item => ({
   _originData: getOriginData(item),
 })
 
+const ServiceAccountMapper = item => ({
+  ...getBaseInfo(item),
+  namespace: get(item, 'metadata.namespace'),
+  labels: get(item, 'metadata.labels', {}),
+  annotations: get(item, 'metadata.annotations', {}),
+  role: get(item, 'metadata.annotations["iam.kubesphere.io/role"]'),
+  secrets: get(item, 'secrets', []),
+  _originData: getOriginData(item),
+})
+
 const secretDataParser = data => {
   if (data.type === 'kubernetes.io/basic-auth') {
     return Object.entries(get(data, 'data', {})).reduce(
@@ -726,11 +749,24 @@ const getApplicationStatus = item => {
       return 'Error'
     }
     if (condition.type === 'Ready' && condition.status === 'True') {
-      return 'Ready'
+      return 'Running'
     }
   }
 
   return 'Updating'
+}
+
+const getApplicationServices = item => {
+  return get(item, 'status.components', [])
+    .filter(com => com.kind === 'Service')
+    .map(com => com.name)
+}
+
+const getApplicationWorkloads = item => {
+  const workloadKinds = ['Deployment', 'StatefulSet']
+  return get(item, 'status.components', [])
+    .filter(com => workloadKinds.includes(com.kind))
+    .map(com => com.name)
 }
 
 const ApplicationMapper = item => ({
@@ -745,6 +781,8 @@ const ApplicationMapper = item => ({
     get(item, 'metadata.annotations["servicemesh.kubesphere.io/enabled"]') ===
     'true',
   status: getApplicationStatus(item),
+  services: getApplicationServices(item),
+  workloads: getApplicationWorkloads(item),
   _originData: getOriginData(item),
 })
 
@@ -827,146 +865,6 @@ const StrategyMapper = item => {
     selector: get(item, 'spec.selector.matchLabels'),
     status: get(item, 'spec.assemblyPhase'),
     _originData: getOriginData(item),
-  }
-}
-
-const AlertMapper = item => {
-  const alertStatus = safeParseJSON(get(item, 'alert_status'), {})
-  const policyConfig = safeParseJSON(get(item, 'policy_config'), {})
-  const resourceFilter = safeParseJSON(get(item, 'rs_filter_param'), {})
-  const resourceSelector = safeParseJSON(resourceFilter.selector, [])
-
-  const targetCount = uniqBy(
-    Object.keys(alertStatus.ResourceStatus || {}),
-    resource => resource.split(' ').pop()
-  ).length
-
-  return {
-    id: get(item, 'alert_id'),
-    addressListId: get(item, 'nf_address_list_id'),
-    name: get(item, 'alert_name'),
-    aliasName: get(item, 'policy_name'),
-    desc: get(item, 'policy_description'),
-    rulesCount: get(item, 'rules_count') || 0,
-    alertStatus,
-    targetCount,
-    policyId: get(item, 'policy_id'),
-    policyConfig,
-    resourceId: get(item, 'rs_filter_id'),
-    resourceType: get(item, 'rs_type_name'),
-    resourceName: get(item, 'rs_filter_name'),
-    resourceFilter,
-    resourceSelector,
-    workloadKind: get(resourceFilter, 'workload_kind'),
-    metrics: get(item, 'metrics') || [],
-    recentAlertTime: get(item, 'most_recent_alert_time'),
-    availableStartTime: get(item, 'available_start_time'),
-    availableEndTime: get(item, 'available_end_time'),
-    createTime: (get(item, 'create_time.seconds') || 0) * 1000,
-    creator: get(item, 'creator'),
-    disabled: get(item, 'disabled'),
-  }
-}
-
-const AlertRuleMapper = item => {
-  const resources = get(item, 'resources') || []
-
-  let alertStatus = isEmpty(resources) ? 'unknown' : 'cleared'
-  resources.some(resource => {
-    if (!resource.current_level) {
-      alertStatus = 'unknown'
-      return true
-    }
-
-    if (resource.current_level && resource.current_level !== 'cleared') {
-      alertStatus = 'alerted'
-      return true
-    }
-
-    return false
-  })
-
-  return {
-    ...item,
-    id: get(item, 'rule_id'),
-    name: get(item, 'rule_name'),
-    alertStatus,
-    metricName: get(item, 'metric_name'),
-    current_level: get(item, 'current_level'),
-    createTime: (get(item, 'create_time.seconds') || 0) * 1000,
-    updateTime: (get(item, 'update_time.seconds') || 0) * 1000,
-  }
-}
-
-const AlertResourceMapper = item => {
-  const resource_uri = safeParseJSON(get(item, 'resource_uri'), {})
-  const selector = safeParseJSON(get(resource_uri, 'selector'), [])
-  const node_id = (get(resource_uri, 'node_id') || '').split('|')
-  const workload_name = (get(resource_uri, 'workload_name') || '').split('|')
-  const workload_kind = get(resource_uri, 'workload_kind')
-
-  return {
-    ...item,
-    createTime: (get(item, 'create_time.seconds') || 0) * 1000,
-    updateTime: (get(item, 'update_time.seconds') || 0) * 1000,
-    resource_uri,
-    node_id,
-    workload_name,
-    workload_kind,
-    selector,
-  }
-}
-
-const AlertMessageMapper = item => {
-  const notificationStatus = safeParseJSON(get(item, 'notification_status'), [])
-  const resourceFilter = safeParseJSON(get(item, 'rs_filter_param'), {})
-
-  let resources = ''
-  switch (item.rs_type_name) {
-    case 'node':
-      resources = get(resourceFilter, 'node_id') || ''
-      break
-    case 'workload':
-      resources = get(resourceFilter, 'workload_name') || ''
-      break
-    case 'pod':
-      resources = get(resourceFilter, 'pod_name') || ''
-      break
-    default:
-      break
-  }
-
-  let resourceName = ''
-  let workloadKind = ''
-  if (item.resource_name) {
-    const data = String(item.resource_name).split(':')
-
-    if (data.length > 1) {
-      resourceName = get(data, '[1]')
-      workloadKind = get(data, '[0]')
-    } else {
-      resourceName = get(data, '[0]')
-      workloadKind = ''
-    }
-  }
-
-  return {
-    ...item,
-    id: get(item, 'history_id'),
-    name: get(item, 'history_name') || `history-${generateId()}`,
-    alertName: get(item, 'alert_name'),
-    ruleId: get(item, 'rule_id'),
-    ruleName: get(item, 'rule_name'),
-    namespace: get(resourceFilter, 'ns_name'),
-    workloadKind,
-    resourceType: get(item, 'rs_type_name'),
-    resourceName,
-    resources: resources.split('|'),
-    metricName: get(item, 'metric_name'),
-    createTime: (get(item, 'create_time.seconds') || 0) * 1000,
-    updateTime: (get(item, 'update_time.seconds') || 0) * 1000,
-    status: get(item, 'event'),
-    notificationStatus,
   }
 }
 
@@ -1053,7 +951,7 @@ const VolumeSnapshotMapper = detail => {
   const { spec = {}, status = {}, metadata = {} } = detail
   const { error = {}, readyToUse } = status
   const { message } = error
-  const { namespace = '' } = metadata
+  const { namespace = '', deletionTimestamp = '' } = metadata
   const snapshotSourceName = get(spec, 'source.persistentVolumeClaimName')
 
   return {
@@ -1064,7 +962,11 @@ const VolumeSnapshotMapper = detail => {
     errorMessage: message,
     generating: !readyToUse && isEmpty(error),
     readyToUse,
-    backupStatus: readyToUse ? 'success' : message ? 'failed' : 'updating',
+    backupStatus: deletionTimestamp
+      ? 'deleting'
+      : readyToUse
+      ? 'success'
+      : 'updating',
     namespace,
     snapshotSourceName,
   }
@@ -1072,10 +974,13 @@ const VolumeSnapshotMapper = detail => {
 
 const ClusterMapper = item => {
   const conditions = keyBy(get(item, 'status.conditions', []), 'type')
+  const configz = get(item, 'status.configz', {})
+  configz.ksVersion = get(item, 'status.kubeSphereVersion', '')
+
   return {
     ...getBaseInfo(item),
     conditions,
-    configz: get(item, 'status.configz', {}),
+    configz,
     provider: get(item, 'spec.provider'),
     isHost: has(
       get(item, 'metadata.labels', {}),
@@ -1175,35 +1080,19 @@ const CRDMapper = item => {
     group: get(item, 'spec.group'),
     scope: get(item, 'spec.scope'),
     kind: get(item, 'spec.names.kind'),
-    latestVersion: get(versions[versions.length - 1], 'name'),
+    latestVersion: getServedVersion(item),
     module: get(item, 'status.acceptedNames.plural'),
     _originData: getOriginData(item),
   }
 }
 
-const DashboardMapper = item => {
-  const { metadata = {}, spec = {} } = item
-
-  /**
-   * name - uniqueName
-   */
-  const { creationTimestamp, name, namespace } = metadata
-
-  /**
-   * title - nickname
-   */
-  const { datasource, description, title } = spec
-
-  return {
-    creationTimestamp,
-    name,
-    namespace,
-    datasource,
-    description,
-    title,
-    _originData: getOriginData(item),
-  }
-}
+const DashboardMapper = item => ({
+  ...getBaseInfo(item),
+  namespace: get(item, 'metadata.namespace'),
+  title: get(item, 'spec.title'),
+  datasource: get(item, 'spec.datasource'),
+  _originData: getOriginData(item),
+})
 
 const NetworkPoliciesMapper = item => ({
   ...getBaseInfo(item),
@@ -1211,6 +1100,23 @@ const NetworkPoliciesMapper = item => ({
   _originData: getOriginData(item),
   key: `${get(item, 'metadata.namespace')}-${get(item, 'metadata.name')}`,
 })
+
+const IPPoolsMapper = item => {
+  const baseInfo = getBaseInfo(item)
+  return {
+    ...baseInfo,
+    cidr: get(item, 'spec.cidr'),
+    status: get(item, 'status', {}),
+    workspace: get(item, 'metadata.labels["kubesphere.io/workspace"]', ''),
+    isDefault: !isUndefined(
+      get(item, 'metadata.labels["ippool.network.kubesphere.io/default"]')
+    ),
+    selector: {
+      'ippool.network.kubesphere.io/name': baseInfo.name,
+    },
+    _originData: getOriginData(item),
+  }
+}
 
 const StorageclasscapabilitiesMapper = item => {
   const { metadata, spec } = item
@@ -1227,6 +1133,37 @@ const StorageclasscapabilitiesMapper = item => {
   }
 }
 
+const ServiceMonitorMapper = item => ({
+  ...getBaseInfo(item),
+  namespace: get(item, 'metadata.namespace'),
+  endpoints: get(item, 'spec.endpoints', []),
+  _originData: getOriginData(item),
+})
+
+const GroupsMapper = item => ({
+  ...getBaseInfo(item),
+  key: get(item, 'metadata.name'),
+  title: get(item, 'metadata.generateName'),
+  group_id: get(item, 'metadata.name'),
+  group_name: get(item, 'metadata.generateName'),
+  alias_name: get(item, 'metadata.annotations["kubesphere.io/alias-name"]'),
+  parent_id: get(item, 'metadata.labels["iam.kubesphere.io/group-parent"]'),
+  _originData: getOriginData(item),
+})
+
+const AlertingRuleMapper = item => {
+  const resources = safeParseJSON(get(item, 'annotations.resources'), [])
+  const rules = safeParseJSON(get(item, 'annotations.rules'), [])
+  return {
+    ...item,
+    aliasName: get(item, 'annotations.aliasName'),
+    description: get(item, 'annotations.description'),
+    resources,
+    rules,
+    ruleType: !isEmpty(resources) ? 'template' : 'custom',
+  }
+}
+
 export default {
   deployments: WorkLoadMapper,
   daemonsets: WorkLoadMapper,
@@ -1239,6 +1176,7 @@ export default {
   revisions: RevisionMapper,
   horizontalpodautoscalers: HpaMapper,
   nodes: NodeMapper,
+  edgenodes: NodeMapper,
   registries: RegistryMapper,
   pods: PodsMapper,
   events: EventsMapper,
@@ -1255,15 +1193,12 @@ export default {
   rolebinds: RoleBindMapper,
   gateway: GatewayMapper,
   configmaps: ConfigmapMapper,
+  serviceaccounts: ServiceAccountMapper,
   secrets: SecretMapper,
   limitranges: LimitRangeMapper,
   applications: ApplicationMapper,
   strategies: StrategyMapper,
   servicepolicies: ServicePolicyMapper,
-  alert: AlertMapper,
-  alertrule: AlertRuleMapper,
-  alertresource: AlertResourceMapper,
-  alertmessage: AlertMessageMapper,
   workspaces: WorkspaceMapper,
   codequality: CodeQualityMapper,
   imageBlob: ImageDetailMapper,
@@ -1275,10 +1210,15 @@ export default {
   outputs: LogOutPutMapper,
   devops: DevOpsMapper,
   dashboards: DashboardMapper,
+  clusterdashboards: DashboardMapper,
   customresourcedefinitions: CRDMapper,
   pipelines: PipelinesMapper,
   networkpolicies: NetworkPoliciesMapper,
   namespacenetworkpolicies: NetworkPoliciesMapper,
+  ippools: IPPoolsMapper,
   storageclasscapabilities: StorageclasscapabilitiesMapper,
+  servicemonitors: ServiceMonitorMapper,
+  groups: GroupsMapper,
   default: DefaultMapper,
+  rules: AlertingRuleMapper,
 }

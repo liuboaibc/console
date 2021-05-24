@@ -17,7 +17,7 @@
  */
 
 import { get, uniq, isEmpty, includes, cloneDeep } from 'lodash'
-import { safeParseJSON } from 'utils'
+import { safeParseJSON, compareVersion } from 'utils'
 
 /** A global class for authorization check. */
 export default class GlobalValue {
@@ -235,6 +235,7 @@ export default class GlobalValue {
           )
         })
         if (!isEmpty(filteredItems)) {
+          this.checkClusterVersionRequired(filteredItems, cluster)
           navs.push({ ...nav, items: filteredItems })
         }
       })
@@ -315,6 +316,7 @@ export default class GlobalValue {
         })
 
         if (!isEmpty(filteredItems)) {
+          this.checkClusterVersionRequired(filteredItems, cluster)
           navs.push({ ...nav, items: filteredItems })
         }
       })
@@ -346,6 +348,7 @@ export default class GlobalValue {
         })
 
         if (!isEmpty(filteredItems)) {
+          this.checkClusterVersionRequired(filteredItems, cluster)
           navs.push({ ...nav, items: filteredItems })
         }
 
@@ -376,8 +379,28 @@ export default class GlobalValue {
     return this._cache_['platformSettingsNavs']
   }
 
+  checkClusterVersionRequired(navs, cluster) {
+    const ksVersion = this.isMultiCluster
+      ? get(globals, `clusterConfig.${cluster}.ksVersion`)
+      : get(globals, 'ksConfig.ksVersion')
+
+    navs.forEach(item => {
+      if (
+        item.requiredClusterVersion &&
+        compareVersion(ksVersion, item.requiredClusterVersion) < 0
+      ) {
+        item.disabled = true
+        item.reason = 'CLUSTER_UPGRADE_REQUIRED'
+      }
+
+      if (item.children && item.children.length > 0) {
+        this.checkClusterVersionRequired(item.children, cluster)
+      }
+    })
+  }
+
   get enableAppStore() {
-    return this.hasKSModule('openpitrix')
+    return this.hasKSModule('openpitrix.appstore')
   }
 
   get isPlatformAdmin() {
@@ -389,14 +412,14 @@ export default class GlobalValue {
   }
 
   hasKSModule(module) {
-    return get(globals, `ksConfig.${module}`)
+    return get(globals, `ksConfig["${module}"]`)
   }
 
   hasClusterModule(cluster, module) {
     if (!this.isMultiCluster) {
       return this.hasKSModule(module)
     }
-    return get(globals, `clusterConfig.${cluster}.${module}`)
+    return get(globals, `clusterConfig.${cluster}["${module}"]`)
   }
 
   cacheHistory(url, obj) {

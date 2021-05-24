@@ -18,16 +18,16 @@
 
 import React from 'react'
 import { observer, inject } from 'mobx-react'
-import { Link } from 'react-router-dom'
+
 import { toJS } from 'mobx'
 import { parse } from 'qs'
 import { omit } from 'lodash'
 
 import CredentialStore from 'stores/devops/credential'
 import { trigger } from 'utils/action'
-
 import { getLocalTime } from 'utils'
 
+import { Avatar } from 'components/Base'
 import Banner from 'components/Cards/Banner'
 import Table from 'components/Tables/Base'
 
@@ -47,7 +47,13 @@ class Credential extends React.Component {
   componentDidMount() {
     this.unsubscribe = this.routing.history.subscribe(location => {
       const params = parse(location.search.slice(1))
-      this.getData(params)
+      const { devops, cluster } = this.props.match.params
+
+      this.store.fetchList({
+        devops,
+        cluster,
+        ...params,
+      })
     })
   }
 
@@ -63,12 +69,14 @@ class Credential extends React.Component {
     })
   }
 
-  getData(params) {
+  getData() {
     const { devops, cluster } = this.props.match.params
+    const query = parse(location.search.slice(1))
+
     this.store.fetchList({
       devops,
       cluster,
-      ...params,
+      ...query,
     })
   }
 
@@ -110,15 +118,11 @@ class Credential extends React.Component {
     {
       title: t('Name'),
       dataIndex: 'name',
-      width: '24%',
-      render: id => (
-        <Link
-          className="item-name"
-          to={`${this.prefix}/${encodeURIComponent(id)}`}
-        >
-          {id}
-        </Link>
-      ),
+      width: '35%',
+      render: id => {
+        const url = `${this.prefix}/${encodeURIComponent(id)}`
+        return <Avatar to={this.isRuning ? null : url} title={id} />
+      },
     },
     {
       title: t('Type'),
@@ -135,7 +139,7 @@ class Credential extends React.Component {
     {
       title: t('Created Time'),
       dataIndex: 'createTime',
-      width: 20,
+      width: '20%',
       render: createTime =>
         getLocalTime(createTime).format(`YYYY-MM-DD HH:mm:ss`),
     },
@@ -151,13 +155,14 @@ class Credential extends React.Component {
 
     const omitFilters = omit(filters, ['page', 'limit', 'sortBy'])
     const pagination = { total, page, limit }
+
     return (
       <Table
         data={data}
         columns={this.getColumns()}
         filters={omitFilters}
         pagination={pagination}
-        rowKey="fullName"
+        rowKey="uid"
         isLoading={isLoading}
         onFetch={this.handleFetch}
         onCreate={showCreate}

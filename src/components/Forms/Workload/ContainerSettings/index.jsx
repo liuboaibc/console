@@ -18,16 +18,20 @@
 
 import { concat, get, set, unset, isEmpty, omit, omitBy, has } from 'lodash'
 import React from 'react'
-import { safeParseJSON, generateId } from 'utils'
+import { generateId } from 'utils'
 import { MODULE_KIND_MAP } from 'utils/constants'
+import { getLeftQuota } from 'utils/workload'
 
 import ConfigMapStore from 'stores/configmap'
 import SecretStore from 'stores/secret'
 import LimitRangeStore from 'stores/limitrange'
 import FederatedStore from 'stores/federated'
+import QuotaStore from 'stores/quota'
+import WorkspaceQuotaStore from 'stores/workspace.quota'
+import ProjectStore from 'stores/project'
 
 import { Form } from '@kube-design/components'
-import PodAffinity from './PodAffinity'
+import AffinityForm from 'components/Forms/Workload/ContainerSettings/Affinity'
 import ReplicasControl from './ReplicasControl'
 import ClusterReplicasControl from './ClusterReplicasControl'
 import UpdateStrategy from './UpdateStrategy'
@@ -47,6 +51,7 @@ export default class ContainerSetting extends React.Component {
       limitRange: {},
       imageRegistries: [],
       replicas: this.getReplicas(),
+      leftQuota: {},
     }
 
     this.module = props.module
@@ -55,6 +60,9 @@ export default class ContainerSetting extends React.Component {
     this.secretStore = new SecretStore()
     this.limitRangeStore = new LimitRangeStore()
     this.imageRegistryStore = new SecretStore()
+    this.quotaStore = new QuotaStore()
+    this.workspaceQuotaStore = new WorkspaceQuotaStore()
+    this.projectStore = new ProjectStore()
 
     if (props.isFederated) {
       this.configMapStore = new FederatedStore({
@@ -76,7 +84,7 @@ export default class ContainerSetting extends React.Component {
 
   componentDidMount() {
     this.fetchData()
-    this.checkPullSecret()
+    this.fetchQuota()
     if (this.props.withService) {
       this.initService(this.formTemplate)
     }
@@ -99,34 +107,6 @@ export default class ContainerSetting extends React.Component {
     return this.props.isFederated
       ? get(this.formTemplate, 'spec.template')
       : this.formTemplate
-  }
-
-  get containerSecretPath() {
-    return `${this.prefix}metadata.annotations["kubesphere.io/containerSecrets"]`
-  }
-
-  checkPullSecret() {
-    const containers = get(
-      this.fedFormTemplate,
-      `${this.prefix}spec.containers`,
-      []
-    )
-    const initContainers = get(
-      this.fedFormTemplate,
-      `${this.prefix}spec.initContainers`,
-      []
-    )
-    const containerSecretMap = safeParseJSON(
-      get(this.formTemplate, this.containerSecretPath, '')
-    )
-
-    if (!isEmpty(containerSecretMap)) {
-      concat(containers, initContainers).forEach(container => {
-        if (containerSecretMap[container.name]) {
-          container.pullSecret = containerSecretMap[container.name]
-        }
-      })
-    }
   }
 
   initService() {
@@ -189,6 +169,32 @@ export default class ContainerSetting extends React.Component {
     })
   }
 
+  fetchQuota() {
+    const { cluster, projectDetail } = this.props
+    const { workspace, name } = projectDetail || {}
+
+    if (workspace && name) {
+      Promise.all([
+        this.quotaStore.fetch({
+          cluster,
+          namespace: name,
+        }),
+        this.workspaceQuotaStore.fetchDetail({
+          name: workspace,
+          workspace,
+          cluster,
+        }),
+      ]).then(() => {
+        this.setState({
+          leftQuota: getLeftQuota(
+            get(this.workspaceQuotaStore.detail, 'status.total'),
+            this.quotaStore.data
+          ),
+        })
+      })
+    }
+  }
+
   handleReplicaChange = value => {
     this.setState({ replicas: value })
   }
@@ -238,9 +244,6 @@ export default class ContainerSetting extends React.Component {
 
   updatePullSecrets = () => {
     const pullSecrets = {}
-    const containerSecretMap = {}
-
-    const containerSecretPath = this.containerSecretPath
     const imagePullSecretsPath = `${this.prefix}spec.imagePullSecrets`
 
     const containers = get(
@@ -256,26 +259,16 @@ export default class ContainerSetting extends React.Component {
     concat(containers, initContainers).forEach(container => {
       if (container.pullSecret) {
         pullSecrets[container.pullSecret] = ''
-        containerSecretMap[container.name] = container.pullSecret
-        delete container.pullSecret
       }
     })
 
-    if (!isEmpty(pullSecrets)) {
-      set(
-        this.fedFormTemplate,
-        imagePullSecretsPath,
-        Object.keys(pullSecrets).map(key => ({ name: key }))
-      )
-      set(
-        this.formTemplate,
-        containerSecretPath,
-        JSON.stringify(containerSecretMap)
-      )
-    } else {
-      set(this.fedFormTemplate, imagePullSecretsPath, null)
-      set(this.formTemplate, containerSecretPath, null)
-    }
+    set(
+      this.fedFormTemplate,
+      imagePullSecretsPath,
+      !isEmpty(pullSecrets)
+        ? Object.keys(pullSecrets).map(key => ({ name: key }))
+        : null
+    )
   }
 
   updateService = () => {
@@ -497,6 +490,9 @@ export default class ContainerSetting extends React.Component {
           onShow={this.showContainer}
           onDelete={this.handleDelete}
           specTemplate={specTemplate}
+          leftQuota={this.state.leftQuota}
+          projectDetail={this.props.projectDetail}
+          replicas={this.state.replicas}
         />
       </Form.Item>
     )
@@ -520,9 +516,17 @@ export default class ContainerSetting extends React.Component {
   }
 
   renderPodAffinity() {
+    const { cluster, namespace } = this.props
     return (
       <div className="margin-b12">
-        <PodAffinity module={this.module} template={this.fedFormTemplate} />
+        <AffinityForm
+          initial
+          data={this.fedFormTemplate}
+          module={this.module}
+          cluster={cluster}
+          namespace={namespace}
+          checkable={true}
+        />
       </div>
     )
   }

@@ -135,7 +135,7 @@ export default class BaseInfo extends React.Component {
               },
               {
                 pattern: PATTERN_NAME,
-                message: `${t('Invalid name')}, ${t('NAME_DESC')}`,
+                message: t('Invalid name', { message: t('NAME_DESC') }),
               },
               { validator: this.nameValidator },
             ]}
@@ -169,7 +169,6 @@ export default class BaseInfo extends React.Component {
             <Select
               name="metadata.annotations['servicemesh.kubesphere.io/enabled']"
               options={this.governances}
-              defaultValue={serviceMeshEnable ? 'true' : 'false'}
               onChange={this.handleGovernanceChange}
               disabled={!serviceMeshEnable}
             />

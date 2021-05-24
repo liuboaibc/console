@@ -83,9 +83,9 @@ export default class AppDetail extends React.Component {
             </div>
           </div>
           <Collapse
-            accordion
             activeKey={this.state.activeKey}
             onChange={this.handleCollapseChange}
+            accordion
           >
             <CollapseItem label={t('Traffic Monitoring')} key="monitor">
               <Monitors

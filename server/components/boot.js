@@ -20,29 +20,15 @@ const compress = require('koa-compress')
 const mount = require('koa-mount')
 const render = require('koa-ejs')
 const serve = require('koa-static')
-const session = require('koa-session2')
 
-const Store = require('../store')
 const { getServerConfig, root } = require('../libs/utils')
 
 const serverConfig = getServerConfig().server
 
 module.exports = function(app) {
-  app.use(
-    session({
-      store: !global.MODE_DEV && serverConfig.redis ? new Store() : undefined,
-      key: serverConfig.sessionKey,
-      maxAge: serverConfig.sessionTimeout,
-      signed: true,
-    })
-  )
-
   // compress middleware
   app.use(
     compress({
-      filter(content_type) {
-        return /(text|javascript)/i.test(content_type)
-      },
       threshold: 2048,
       flush: require('zlib').Z_SYNC_FLUSH,
     })
@@ -55,12 +41,17 @@ module.exports = function(app) {
   }
 
   if (global.MODE_DEV) {
-    const webpack = require('webpack')
-    const { devMiddleware, hotMiddleware } = require('koa-webpack-middleware')
-    const config = require(root('scripts/webpack.dev'))
-    const compiler = webpack(config)
-    app.use(devMiddleware(compiler, { stats: { colors: true } }))
-    app.use(hotMiddleware(compiler, {}))
+    app.use(async (ctx, next) => {
+      if (
+        /(\.hot-update\.)|(\.(ttf|otf|eot|woff2?)(\?.+)?$)|(\.js$)/.test(
+          ctx.url
+        )
+      ) {
+        ctx.redirect(`http://${ctx.hostname}:8001${ctx.url}`)
+      } else {
+        await next()
+      }
+    })
   }
 
   render(app, {

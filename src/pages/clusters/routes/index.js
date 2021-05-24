@@ -18,6 +18,9 @@
 
 import { getIndexRoute } from 'utils/router.config'
 
+import AlertMessages from 'projects/containers/Alerting/Messages'
+import AlertPolicies from 'projects/containers/Alerting/Policies'
+
 import ClusterLayout from '../containers/layout'
 import ListLayout from '../containers/Base/List'
 
@@ -27,6 +30,7 @@ import StorageClasses from '../containers/Storage/StorageClasses'
 import VolumeSnapshots from '../containers/Storage/VolumeSnapshots'
 import Volumes from '../containers/Storage/Volumes'
 import Nodes from '../containers/Nodes'
+import EdgeNodes from '../containers/EdgeNodes/index'
 import ServiceComponents from '../containers/ServiceComponents'
 import Projects from '../containers/Projects'
 import CustomResources from '../containers/CustomResources'
@@ -41,19 +45,18 @@ import Services from '../containers/Workload/Services'
 import Routes from '../containers/Workload/Routes'
 import Secrets from '../containers/Secrets'
 import ConfigMaps from '../containers/ConfigMaps'
+import ServiceAccounts from '../containers/ServiceAccounts'
 import ClusterMonitor from '../containers/Monitor/Cluster'
 import ResourceMonitor from '../containers/Monitor/Resource'
 import Members from '../containers/Members'
 import Roles from '../containers/Roles'
 import BaseInfo from '../containers/BaseInfo'
 import Visibility from '../containers/Visibility'
-import KubeCtl from '../containers/KubeCtl'
 import KubeConfig from '../containers/KubeConfig'
 import NetworkPolicies from '../containers/Network/Policies'
-import AlertMessages from '../containers/Alerting/Messages'
-import AlertPolicies from '../containers/Alerting/Policies'
-import MailServer from '../containers/MailServices'
+import IPPools from '../containers/Network/IPPools'
 import LogCollections from '../containers/LogCollections'
+import CustomMonitoring from '../containers/CustomMonitoring'
 
 import detail from './detail'
 
@@ -78,11 +81,6 @@ export default [
     routes: [
       ...detail,
       {
-        path: `${PATH}/kubectl`,
-        exact: true,
-        component: KubeCtl,
-      },
-      {
         path: `${PATH}/kubeConfig`,
         component: KubeConfig,
         exact: true,
@@ -101,8 +99,14 @@ export default [
             component: Nodes,
           },
           {
+            path: `${PATH}/edgenodes`,
+            component: EdgeNodes,
+            exact: true,
+          },
+          {
             path: `${PATH}/components`,
             component: ServiceComponents,
+            exact: true,
           },
           {
             path: `${PATH}/projects`,
@@ -165,6 +169,11 @@ export default [
             exact: true,
           },
           {
+            path: `${PATH}/serviceaccounts`,
+            component: ServiceAccounts,
+            exact: true,
+          },
+          {
             path: `${PATH}/storageclasses`,
             component: StorageClasses,
             exact: true,
@@ -188,11 +197,11 @@ export default [
             component: ResourceMonitor,
           },
           {
-            path: `${PATH}/alert-messages`,
+            path: `${PATH}/alerts`,
             component: AlertMessages,
           },
           {
-            path: `${PATH}/alert-policies`,
+            path: `${PATH}/alert-rules`,
             component: AlertPolicies,
           },
           {
@@ -230,13 +239,18 @@ export default [
             exact: true,
           },
           {
-            path: `${PATH}/mail-server`,
-            component: MailServer,
+            path: `${PATH}/ippools`,
+            component: IPPools,
             exact: true,
           },
           {
             path: `${PATH}/log-collections/:component`,
             component: LogCollections,
+          },
+          {
+            path: `${PATH}/custom-monitoring`,
+            component: CustomMonitoring,
+            exact: true,
           },
           getIndexRoute({ path: PATH, to: `${PATH}/overview`, exact: true }),
           getIndexRoute({
@@ -249,6 +263,7 @@ export default [
             to: `${PATH}/log-collections/logging`,
             exact: true,
           }),
+          getIndexRoute({ path: '*', to: '/404', exact: true }),
         ],
       },
     ],

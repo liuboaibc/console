@@ -168,7 +168,7 @@ export default class PolicyForm extends React.Component {
 
     const callback = () => {
       this.getData(this.props)
-      Notify.success({ content: `${t('Updated Successfully')}!` })
+      Notify.success({ content: `${t('Updated Successfully')}` })
     }
 
     if (!isEmpty(this.detail)) {
@@ -204,7 +204,7 @@ export default class PolicyForm extends React.Component {
           onChange={this.handleModeChange}
           size="small"
         >
-          <RadioButton value="lb">{t('Load balance algorithm')}</RadioButton>
+          <RadioButton value="lb">{t('Load balance')}</RadioButton>
           <RadioButton value="session">{t('Session retention')}</RadioButton>
         </RadioGroup>
         {mode === 'lb' && this.renderLBOptions()}

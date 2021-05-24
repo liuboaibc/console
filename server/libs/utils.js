@@ -22,9 +22,10 @@ const NodeCache = require('node-cache')
 const get = require('lodash/get')
 const merge = require('lodash/merge')
 const isEmpty = require('lodash/isEmpty')
-const pathToRegex = require('path-to-regexp')
+const pick = require('lodash/pick')
 
-const MANIFEST_CACHE_KEY = 'MANIFEST_CACHE_KEY'
+const MANIFEST_CACHE_KEY_PREFIX = 'MANIFEST_CACHE_KEY_'
+const LOCALE_MANIFEST_CACHE_KEY = 'LOCALE_MANIFEST_CACHE_KEY'
 
 const root = dir => `${global.APP_ROOT}/${dir}`.replace(/(\/+)/g, '/')
 
@@ -82,8 +83,7 @@ const isValidReferer = path =>
  * @param path  koa ctx.path
  */
 const isAppsRoute = path => {
-  const regex = pathToRegex('/apps/app-(.*)')
-  return path === '/apps' || regex.exec(path)
+  return path === '/apps' || /\/apps\/?(app-([-0-9a-z]*)\/?)?$/.exec(path)
 }
 
 /**
@@ -142,8 +142,8 @@ const safeParseJSON = (json, defaultValue) => {
   return result
 }
 
-const getManifest = () => {
-  let manifestCache = cache.get(MANIFEST_CACHE_KEY)
+const getManifest = entry => {
+  let manifestCache = cache.get(`${MANIFEST_CACHE_KEY_PREFIX}${entry}`)
 
   if (!manifestCache) {
     let data = {}
@@ -151,8 +151,27 @@ const getManifest = () => {
       const dataStream = fs.readFileSync(root('dist/manifest.json'))
       data = safeParseJSON(dataStream.toString(), {})
     } catch (error) {}
-    manifestCache = get(data, 'entrypoints.main')
-    cache.set(MANIFEST_CACHE_KEY, manifestCache)
+    manifestCache = get(data, `entrypoints.${entry}`)
+    cache.set(`${MANIFEST_CACHE_KEY_PREFIX}${entry}`, manifestCache)
+  }
+
+  return manifestCache
+}
+
+const getLocaleManifest = () => {
+  let manifestCache = cache.get(LOCALE_MANIFEST_CACHE_KEY)
+
+  if (!manifestCache) {
+    let data = {}
+    try {
+      const dataStream = fs.readFileSync(root('dist/manifest.locale.json'))
+      data = safeParseJSON(dataStream.toString(), {})
+    } catch (error) {}
+    manifestCache = pick(
+      data,
+      Object.keys(data).filter(key => key.startsWith('locale-'))
+    )
+    cache.set(LOCALE_MANIFEST_CACHE_KEY, manifestCache)
   }
 
   return manifestCache
@@ -163,6 +182,7 @@ module.exports = {
   loadYaml,
   getCache,
   getManifest,
+  getLocaleManifest,
   getServerConfig,
   isValidReferer,
   isAppsRoute,

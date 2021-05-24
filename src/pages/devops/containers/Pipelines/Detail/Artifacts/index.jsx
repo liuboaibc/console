@@ -69,9 +69,10 @@ export default class Artifacts extends React.Component {
 
   getDownloadUrl = url => {
     const { params } = this.props.match
+
     return params.cluster === 'default' || !params.cluster
-      ? `/kapis/devops.kubesphere.io/v1alpha2/jenkins${url}`
-      : `/kapis/clusters/${params.cluster}/devops.kubesphere.io/v1alpha2/jenkins${url}`
+      ? `/kapis/devops.kubesphere.io/v1alpha2/devops/${params.devops}/jenkins${url}`
+      : `/kapis/clusters/${params.cluster}/devops.kubesphere.io/v1alpha2/devops/${params.devops}/jenkins${url}`
   }
 
   getFilteredValue = dataIndex => this.store.list.filters[dataIndex]
@@ -119,7 +120,7 @@ export default class Artifacts extends React.Component {
     const { data, filters, isLoading, total, page, limit } = toJS(
       this.store.artifactsList
     )
-    const isEmptyList = isLoading === false && total === 0
+    const isEmptyList = total === 0
     const omitFilters = omit(filters, 'page', 'workspace')
 
     if (isEmptyList && !filters.page) {

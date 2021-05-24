@@ -113,7 +113,7 @@ export default class HelmUpload extends Component {
 
     if (this.state.checkStatus !== 'success') {
       Notify.error({
-        content: `${t('UPLOAD_PACKAGE_OK_NOTE')}!`,
+        content: `${t('UPLOAD_PACKAGE_OK_NOTE')}`,
       })
       return false
     }
@@ -169,7 +169,7 @@ export default class HelmUpload extends Component {
             target="_blank"
             rel="noreferrer noopener"
           >
-            《{t('HELM_DEVELOP_GUIDE')}》
+            {t('HELM_DEVELOP_GUIDE')}
           </a>
         </div>
       </div>

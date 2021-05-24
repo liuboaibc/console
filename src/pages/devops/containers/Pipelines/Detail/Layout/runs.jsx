@@ -36,13 +36,15 @@ import DetailPage from 'devops/containers/Base/Detail'
 export default class RunDetailLayout extends React.Component {
   store = new RunDetailStore()
 
+  module = 'pipelines'
+
   state = {
     showEdit: false,
     showYamlEdit: false,
     isLoading: true,
   }
 
-  refreshTimer = setInterval(this.refreshHandler, 4000)
+  refreshTimer = setInterval(() => this.refreshHandler(), 4000)
 
   get listUrl() {
     const { workspace, devops, cluster } = this.props.match.params
@@ -158,7 +160,7 @@ export default class RunDetailLayout extends React.Component {
     const { cluster, devops } = this.props.match.params
 
     return globals.app.getActions({
-      module: 'pipelines',
+      module: this.module,
       cluster,
       devops,
     })
@@ -214,6 +216,7 @@ export default class RunDetailLayout extends React.Component {
       attrs: this.getAttrs(),
       desc: get(annotations, 'desc'),
       labels,
+      module: this.module,
       breadcrumbs: [
         {
           label: branch ? (runId ? t('Activity') : t('Branch')) : t('Activity'),

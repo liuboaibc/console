@@ -97,7 +97,12 @@ export default class HPACard extends React.Component {
           isUndefined(memoryTargetValue) || memoryTargetValue === ''
             ? t('None')
             : memoryTargetValue,
-        current: this.getValue(memoryCurrentValue, 'memory'),
+        current: this.getValue(
+          String(memoryCurrentValue).endsWith('m')
+            ? parseInt(memoryCurrentValue, 10) / 1000
+            : memoryCurrentValue,
+          'memory'
+        ),
       },
     ]
   }
@@ -120,7 +125,7 @@ export default class HPACard extends React.Component {
   handleCancel = () => {
     const { detail, onDeleted } = this.props
     this.store.delete(detail).then(() => {
-      Notify.success({ content: `${t('Canceled Successfully')}!` })
+      Notify.success({ content: `${t('Canceled Successfully')}` })
       onDeleted()
     })
   }

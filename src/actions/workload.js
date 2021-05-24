@@ -16,7 +16,7 @@
  * along with KubeSphere Console.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { get } from 'lodash'
+import { get, isEmpty } from 'lodash'
 import { toJS } from 'mobx'
 import { withProps } from 'utils'
 import { Notify } from '@kube-design/components'
@@ -97,6 +97,11 @@ export default {
             return
           }
 
+          const customMode = get(data, 'spec.template.spec.customMode', {})
+          if (!isEmpty(customMode)) {
+            delete data.spec.template.spec.customMode
+          }
+
           if (kind) {
             if (Object.keys(newObject).length === 1 && newObject[kind]) {
               data = newObject[kind]
@@ -105,7 +110,7 @@ export default {
 
           store.create(data, { cluster, namespace }).then(() => {
             Modal.close(modal)
-            Notify.success({ content: `${t('Created Successfully')}!` })
+            Notify.success({ content: `${t('Created Successfully')}` })
             success && success()
             formPersist.delete(`${module}_create_form`)
           })
@@ -142,7 +147,7 @@ export default {
             })
             .then(() => {
               Modal.close(modal)
-              Notify.success({ content: `${t('Redeploy Successfully')}!` })
+              Notify.success({ content: `${t('Redeploy Successfully')}` })
             })
         },
         detail,
@@ -208,6 +213,11 @@ export default {
     on({ store, detail, success, ...props }) {
       const modal = Modal.open({
         onOk: data => {
+          const customMode = get(data, 'spec.template.spec.customMode', {})
+          if (!isEmpty(customMode)) {
+            delete data.spec.template.spec.customMode
+          }
+
           store.update(detail, data).then(() => {
             Modal.close(modal)
             success && success()
@@ -250,7 +260,7 @@ export default {
       const modal = Modal.open({
         onOk: () => {
           Modal.close(modal)
-          Notify.success({ content: `${t('Deleted Successfully')}!` })
+          Notify.success({ content: `${t('Deleted Successfully')}` })
           success && success()
         },
         store,
@@ -271,7 +281,7 @@ export default {
       const modal = Modal.open({
         onOk: () => {
           Modal.close(modal)
-          Notify.success({ content: `${t('Deleted Successfully')}!` })
+          Notify.success({ content: `${t('Deleted Successfully')}` })
           success && success()
         },
         modal: DeleteModal,

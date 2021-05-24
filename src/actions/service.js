@@ -25,12 +25,15 @@ import CreateModal from 'components/Modals/Create'
 import CreateServiceModal from 'projects/components/Modals/ServiceCreate'
 import EditServiceModal from 'projects/components/Modals/ServiceSetting'
 import EditGatewayModal from 'projects/components/Modals/ServiceGatewaySetting'
+import ServiceMonitorModal from 'projects/components/Modals/ServiceMonitor'
 import DeleteModal from 'projects/components/Modals/ServiceDelete'
 import { MODULE_KIND_MAP } from 'utils/constants'
 import { getOverrides } from 'utils/cluster'
 import formPersist from 'utils/form.persist'
 import FORM_TEMPLATES from 'utils/form.templates'
 import FORM_STEPS from 'configs/steps/services'
+
+import ServiceMonitorStore from 'stores/monitoring/service.monitor'
 
 export default {
   'service.create': {
@@ -53,7 +56,7 @@ export default {
 
           store.create(data, { cluster, namespace }).then(() => {
             Modal.close(modal)
-            Notify.success({ content: `${t('Created Successfully')}!` })
+            Notify.success({ content: `${t('Created Successfully')}` })
             success && success()
             formPersist.delete(`${module}_create_form`)
           })
@@ -90,7 +93,7 @@ export default {
             })
             .then(() => {
               Modal.close(modal)
-              Notify.success({ content: `${t('Created Successfully')}!` })
+              Notify.success({ content: `${t('Created Successfully')}` })
               success && success()
               formPersist.delete(`${module}_create_form`)
             })
@@ -113,7 +116,7 @@ export default {
         onOk: newObject => {
           store.update(detail, newObject).then(() => {
             Modal.close(modal)
-            Notify.success({ content: `${t('Updated Successfully')}!` })
+            Notify.success({ content: `${t('Updated Successfully')}` })
             success && success()
           })
         },
@@ -132,7 +135,7 @@ export default {
         onOk: newObject => {
           store.update(detail, newObject).then(() => {
             Modal.close(modal)
-            Notify.success({ content: `${t('Updated Successfully')}!` })
+            Notify.success({ content: `${t('Updated Successfully')}` })
             success && success()
           })
         },
@@ -164,7 +167,7 @@ export default {
 
           store.patch({ name, namespace }, data).then(() => {
             Modal.close(modal)
-            Notify.success({ content: `${t('Updated Successfully')}!` })
+            Notify.success({ content: `${t('Updated Successfully')}` })
             success && success()
           })
         },
@@ -180,7 +183,7 @@ export default {
       const modal = Modal.open({
         onOk: () => {
           Modal.close(modal)
-          Notify.success({ content: `${t('Deleted Successfully')}!` })
+          Notify.success({ content: `${t('Deleted Successfully')}` })
           success && success()
         },
         store,
@@ -205,12 +208,49 @@ export default {
       const modal = Modal.open({
         onOk: () => {
           Modal.close(modal)
-          Notify.success({ content: `${t('Deleted Successfully')}!` })
+          Notify.success({ content: `${t('Deleted Successfully')}` })
           success && success()
         },
         modal: DeleteModal,
         resource,
         store,
+        ...props,
+      })
+    },
+  },
+  'service.monitor.edit': {
+    on({ store, cluster, namespace, success, detail, ...props }) {
+      const serviceMonitorStore = new ServiceMonitorStore()
+      const formTemplate = FORM_TEMPLATES.servicemonitors({
+        name: detail.name,
+        namespace,
+      })
+      const modal = Modal.open({
+        onOk: async data => {
+          const name = get(data, 'metadata.name')
+          const result = await serviceMonitorStore.checkName({
+            name,
+            cluster,
+            namespace,
+          })
+
+          if (!result.exist) {
+            await serviceMonitorStore.create(data, { cluster, namespace })
+          } else if (isEmpty(get(data, 'spec.endpoints'))) {
+            await serviceMonitorStore.delete({ name, cluster, namespace })
+          } else {
+            await serviceMonitorStore.update({ name, cluster, namespace }, data)
+          }
+
+          Modal.close(modal)
+          success && success()
+        },
+        cluster,
+        namespace,
+        formTemplate,
+        detail,
+        store: serviceMonitorStore,
+        modal: ServiceMonitorModal,
         ...props,
       })
     },

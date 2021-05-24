@@ -18,13 +18,14 @@
 
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { get, omit } from 'lodash'
+import { get, omit, isEmpty } from 'lodash'
 import { toJS } from 'mobx'
 import { observer, inject } from 'mobx-react'
 import { parse } from 'qs'
 import { getLocalTime } from 'utils'
 import Status from 'devops/components/Status'
 import { getPipelineStatus } from 'utils/status'
+import Health from 'devops/components/Health'
 
 import Table from 'components/Tables/List'
 import EmptyCard from 'devops/components/Cards/EmptyCard'
@@ -36,24 +37,59 @@ export default class Pullrequest extends React.Component {
 
   store = this.props.detailStore || {}
 
+  refreshTimer = setInterval(() => this.refreshHandler(), 4000)
+
+  get isRuning() {
+    const data = get(toJS(this.store), 'pullRequestList.data', [])
+    const runingData = data.filter(item => {
+      const state = get(item, 'latestRun.state')
+      return state && state !== 'FINISHED' && state !== 'PAUSED'
+    })
+    return !isEmpty(runingData)
+  }
+
   componentDidMount() {
     const { params } = this.props.match
 
     this.unsubscribe = this.routing.history.subscribe(location => {
       if (location.pathname === this.props.match.url) {
         const query = parse(location.search.slice(1))
-        this.getData({ ...params, ...query })
+        this.store.getPullRequest({
+          ...params,
+          ...query,
+        })
       }
     })
   }
 
+  refreshHandler = () => {
+    if (this.isRuning) {
+      this.getData()
+    } else {
+      clearInterval(this.refreshTimer)
+      this.refreshTimer = null
+    }
+  }
+
+  componentDidUpdate() {
+    if (this.refreshTimer === null && this.isRuning) {
+      clearInterval(this.refreshTimer)
+      this.refreshTimer = setInterval(() => this.refreshHandler(), 4000)
+    }
+  }
+
   componentWillUnmount() {
+    clearInterval(this.refreshTimer)
     this.unsubscribe && this.unsubscribe()
   }
 
-  getData(params) {
+  getData() {
+    const { params } = this.props.match
+    const query = parse(location.search.slice(1))
+
     this.store.getPullRequest({
       ...params,
+      ...query,
     })
   }
 
@@ -75,7 +111,7 @@ export default class Pullrequest extends React.Component {
   getColumns = () => [
     {
       title: t('Status'),
-      width: '12%',
+      width: '15%',
       render: record => (
         <Status {...getPipelineStatus(get(record, 'latestRun', {}))} />
       ),
@@ -83,7 +119,7 @@ export default class Pullrequest extends React.Component {
     {
       title: t('Name'),
       dataIndex: 'displayName',
-      width: '19%',
+      width: '15%',
       render: displayName => (
         <Link
           className="item-name"
@@ -94,19 +130,25 @@ export default class Pullrequest extends React.Component {
       ),
     },
     {
+      title: t('WeatherScore'),
+      dataIndex: 'weatherScore',
+      width: '15%',
+      render: weatherScore => <Health score={weatherScore} />,
+    },
+    {
       title: t('Last Message'),
-      width: '25%',
+      width: '20%',
       render: record => get(record, 'pullRequest.title', ''),
     },
     {
-      title: t('author'),
+      title: t('Author'),
       width: '15%',
       render: record => get(record, 'pullRequest.author', ''),
     },
     {
       title: t('Time'),
       dataIndex: 'latestRun',
-      width: '15%',
+      width: '20%',
       render: latestRun =>
         getLocalTime(latestRun.startTime).format('YYYY-MM-DD HH:mm:ss'),
     },
@@ -117,22 +159,19 @@ export default class Pullrequest extends React.Component {
   render() {
     const { pullRequestList } = this.store
     const { data, isLoading, total, page, limit, filters } = pullRequestList
-
-    const isEmptyList = isLoading === false && total === 0
-
+    const isEmptyList = isLoading === false && total === 0 && data.length > 0
+    const pagination = { total, page, limit }
     const omitFilters = omit(filters, 'page', 'workspace')
 
     if (isEmptyList && !filters.page) {
       return <EmptyCard name={this.name} />
     }
 
-    const pagination = { total, page, limit }
-
     return (
       <Table
         data={toJS(data)}
         columns={this.getColumns()}
-        rowKey="latestRun"
+        rowKey="displayName"
         filters={omitFilters}
         pagination={pagination}
         isLoading={isLoading}

@@ -78,6 +78,11 @@ export default class Sider extends React.Component {
     return get(this.props.store.jsonData, 'json.pipeline.agent.type', '')
   }
 
+  @computed
+  get labelDataList() {
+    return get(this.props.store, 'labelDataList', [])
+  }
+
   handleDelete = () => {
     this.props.store.deleteStage()
   }
@@ -114,6 +119,9 @@ export default class Sider extends React.Component {
   }
 
   renderAgentForms = () => {
+    const labelDataList = toJS(this.labelDataList)
+    const labelDefaultValue = get(labelDataList, '0.value', '')
+
     switch (this.agentType) {
       case 'node':
         return (
@@ -124,7 +132,11 @@ export default class Sider extends React.Component {
                 'The label on which to run the Pipeline or individual stage'
               )}
             >
-              <Input name="label" defaultValue="base" />
+              <Select
+                name="label"
+                options={labelDataList}
+                defaultValue={labelDefaultValue}
+              />
             </Form.Item>
           </Form>
         )
@@ -184,10 +196,12 @@ export default class Sider extends React.Component {
           </div>
         </div>
         {activeStage ? (
-          <StepsEditor activeStage={activeStage} store={this.props.store} />
+          <div className={styles.content}>
+            <StepsEditor activeStage={activeStage} store={this.props.store} />
+          </div>
         ) : null}
         <YamlEditor
-          value={this.formData.yaml}
+          value={this.formData.yaml || ''}
           visible={this.showYaml}
           onCancel={this.hideYamlEditor}
           onOk={this.handleSetYaml}

@@ -39,7 +39,7 @@ export default class Secrets extends React.Component {
   showAction = record => !record.isFedManaged
 
   get itemActions() {
-    const { trigger, getData } = this.props
+    const { trigger, name, getData } = this.props
     return [
       {
         key: 'edit',
@@ -83,7 +83,7 @@ export default class Secrets extends React.Component {
         show: this.showAction,
         onClick: item =>
           trigger('resource.delete', {
-            type: t(this.name),
+            type: t(name),
             detail: item,
           }),
       },
@@ -110,11 +110,8 @@ export default class Secrets extends React.Component {
             iconSize={40}
             title={getDisplayName(record)}
             desc={record.description || '-'}
-            to={`${this.props.match.url}/${name}`}
+            to={`/clusters/${cluster}/projects/${record.namespace}/${module}/${name}`}
             isMultiCluster={record.isFedManaged}
-            to={`/clusters/${cluster}/projects/${
-              record.namespace
-            }/${module}/${name}`}
           />
         ),
       },

@@ -1,4 +1,4 @@
-<% var bundlePrefix = isDev ? '' : '/dist' %>
+<% var bundlePrefix = isDev ? '//' + hostname + ':8001' : '/dist' %>
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -10,6 +10,9 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
     <title><%= title %></title>
     <link rel="icon" href="/assets/favicon.ico" type="image/x-icon" />
+    <style>
+      <%- include('../public/loading.css') %>
+    </style>
     <% if (manifest && manifest.css && manifest.css.length > 0) { %>
       <% manifest.css.forEach(function(item){ %>
         <link href="<%= bundlePrefix %>/<%= item %>" rel="stylesheet" media="all" />
@@ -17,13 +20,11 @@
     <% } %>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <%- include('./components/loading.html')  %>
+    </div>
     <script type="text/javascript">
-      window.globals = {
-        config: <%- config %>,
-        ksConfig: <%- ksConfig %>,
-        user: <%- user || "null" %>
-      }
+      window.globals = JSON.parse(`<%- globals %>`)
     </script>
     <% if (manifest && manifest.js && manifest.js.length > 0) { %>
       <% manifest.js.forEach(function(item){ %>

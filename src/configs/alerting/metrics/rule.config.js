@@ -16,56 +16,6 @@
  * along with KubeSphere Console.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-const PERIOD_OPTIONS = [
-  {
-    label: 'PERIOD_OPTIONS',
-    value: 1,
-  },
-  {
-    label: 'PERIOD_OPTIONS',
-    value: 5,
-  },
-  {
-    label: 'PERIOD_OPTIONS',
-    value: 15,
-  },
-  {
-    label: 'PERIOD_OPTIONS',
-    value: 30,
-  },
-  {
-    label: 'PERIOD_OPTIONS',
-    value: 60,
-  },
-]
-
-const CONSECUTIVE_OPTIONS = [
-  {
-    label: 'CONSECUTIVE_OPTIONS',
-    value: 1,
-  },
-  {
-    label: 'CONSECUTIVE_OPTIONS',
-    value: 2,
-  },
-  {
-    label: 'CONSECUTIVE_OPTIONS',
-    value: 3,
-  },
-  {
-    label: 'CONSECUTIVE_OPTIONS',
-    value: 4,
-  },
-  {
-    label: 'CONSECUTIVE_OPTIONS',
-    value: 5,
-  },
-  {
-    label: 'CONSECUTIVE_OPTIONS',
-    value: 10,
-  },
-]
-
 const CONDITION_OPTIONS = [
   {
     label: '>',
@@ -97,44 +47,28 @@ export const SEVERITY_LEVEL = [
     value: 'critical',
   },
   {
-    type: 'major',
+    type: 'error',
     prefixIcon: 'information',
     color: {
       primary: '#fae7e5',
       secondary: '#f5a623',
     },
-    label: 'Major Alert',
-    value: 'major',
+    label: 'Error Alert',
+    value: 'error',
   },
   {
-    type: 'minor',
+    type: 'warning',
     prefixIcon: 'information',
     color: {
       primary: '#fae7e5',
       secondary: '#79879c',
     },
-    label: 'Minor Alert',
-    value: 'minor',
+    label: 'Warning Alert',
+    value: 'warning',
   },
 ]
 
-export const getBaseRuleConfig = ({
-  periods = {},
-  consecutive = {},
-  condition = {},
-  thresholds = {},
-  severity = {},
-} = {}) => [
-  {
-    name: 'monitor_periods',
-    options: PERIOD_OPTIONS,
-    ...periods,
-  },
-  {
-    name: 'consecutive_count',
-    options: CONSECUTIVE_OPTIONS,
-    ...consecutive,
-  },
+export const getBaseRuleConfig = ({ condition = {}, thresholds = {} } = {}) => [
   {
     name: 'condition_type',
     options: CONDITION_OPTIONS,
@@ -146,49 +80,54 @@ export const getBaseRuleConfig = ({
     placeholder: 'Threshold',
     ...thresholds,
   },
-  {
-    name: 'severity',
-    options: SEVERITY_LEVEL,
-    ...severity,
-  },
 ]
 
 export const BASE_RULE_CONFIG = getBaseRuleConfig()
 
 export const PERCENT_RULE_CONFIG = getBaseRuleConfig({
   thresholds: {
-    min: 1,
+    min: 0,
     max: 100,
     unit: '%',
+    converter: value => value / 100,
   },
 })
 
 export const CPU_RULE_CONFIG = getBaseRuleConfig({
   thresholds: {
     unit: 'core',
+    min: 0,
   },
 })
 
 export const MEMORY_RULE_CONFIG = getBaseRuleConfig({
   thresholds: {
     unit: 'Mi',
+    min: 0,
+    converter: value => value * 1024 ** 2,
   },
 })
 
 export const DISK_RULE_CONFIG = getBaseRuleConfig({
   thresholds: {
     unit: 'GB',
+    min: 0,
+    converter: value => value * 1000 ** 3,
   },
 })
 
 export const THROUGHPUT_RULE_CONFIG = getBaseRuleConfig({
   thresholds: {
     unit: 'KB/s',
+    min: 0,
+    converter: value => value * 1000,
   },
 })
 
 export const BANDWIDTH_RULE_CONFIG = getBaseRuleConfig({
   thresholds: {
     unit: 'Mbps',
+    min: 0,
+    converter: value => value * (1024 ** 2 / 8),
   },
 })

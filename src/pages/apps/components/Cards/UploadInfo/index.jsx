@@ -72,7 +72,8 @@ export default class UploadInfo extends Component {
     return (hasPackage || canCreate || canEdit) && this.state.status === 'init'
   }
 
-  onUploadClick = () => {
+  onUploadClick = e => {
+    e.stopPropagation()
     this.uploadRef.onClick()
   }
 
@@ -131,7 +132,7 @@ export default class UploadInfo extends Component {
       packageName,
     }
     this.fileStore.downloadPackage(data).then(() => {
-      Notify.success({ content: `${t('Download Successfully')}!` })
+      Notify.success({ content: `${t('Download Successfully')}` })
     })
   }
 

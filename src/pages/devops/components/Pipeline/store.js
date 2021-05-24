@@ -17,7 +17,7 @@
  */
 
 import { action, observable, computed, toJS } from 'mobx'
-import { get, set, unset, isObject, isEmpty } from 'lodash'
+import { get, set, unset, isObject, isEmpty, isArray } from 'lodash'
 import { Notify } from '@kube-design/components'
 
 import CredentialStore from 'stores/devops/credential'
@@ -47,6 +47,21 @@ const formatPipeLineJson = json => {
 
   if (isObject(json.pipeline.parameters) && isEmpty(json.pipeline.parameters)) {
     delete json.pipeline.parameters
+  } else {
+    const parameters = get(json, 'pipeline.parameters.parameters', [])
+    if (!isEmpty(parameters) && isArray(parameters)) {
+      parameters.forEach(item => {
+        const args = get(item, 'arguments', [])
+        if (!isEmpty(parameters) && isArray(args)) {
+          args.forEach(arg => {
+            const value = get(arg, 'value.value')
+            if (!value && arg.key) {
+              set(arg, 'value.value', '')
+            }
+          })
+        }
+      })
+    }
   }
 
   return json
@@ -67,6 +82,7 @@ export default class Store extends BaseStore {
           steps: [],
         },
       ],
+      agent: { type: 'none' },
       name: `stage-${generateId(5)}`,
     }
   }
@@ -107,6 +123,9 @@ export default class Store extends BaseStore {
 
   @observable
   params = {}
+
+  @observable
+  labelDataList = []
 
   @observable
   credentialsList = { data: [] }
@@ -348,7 +367,29 @@ export default class Store extends BaseStore {
   }
 
   @action
+  createCredential = async (data, params) => {
+    await this.credentialStore.handleCreate(data, params)
+  }
+
+  @action
   async handleConfirm() {
     await this.convertJsonToJenkinsFile()
+  }
+
+  @action
+  async fetchLabel({ devops }) {
+    const url = `${this.getDevopsUrlV2()}${devops}/jenkins/labelsdashboard/labelsData`
+    const result = await this.request.get(url, {}, {}, () => {
+      this.labelDataList = []
+    })
+
+    if (result && result.status === 'ok' && isArray(result.data)) {
+      const labelDataList = result.data.map(item => {
+        return { label: item.label, value: item.label }
+      })
+      this.labelDataList = labelDataList
+    } else {
+      this.labelDataList = []
+    }
   }
 }

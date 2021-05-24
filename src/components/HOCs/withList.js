@@ -186,6 +186,7 @@ export default function withList(options) {
       render() {
         return (
           <ObserverComponent
+            name={this.name}
             module={this.module}
             store={this.store}
             prefix={this.prefix}
@@ -288,21 +289,23 @@ export class ListPage extends React.Component {
         ? ObjectMapper.federated(this.store.mapper)
         : this.store.mapper
 
-      this.disposer = reaction(
-        () => this.websocket.message,
-        message => {
-          if (message.object.kind === kind) {
-            if (message.type === 'MODIFIED') {
-              const data = {
-                ...this.props.match.params,
-                ...mapper(toJS(message.object)),
-              }
-              this.store.list.updateItem(data)
-            } else if (message.type === 'DELETED' || message.type === 'ADDED') {
-              _getData()
+      const onMessage = message => {
+        if (message.object.kind === kind) {
+          if (message.type === 'MODIFIED') {
+            const data = {
+              ...this.props.match.params,
+              ...mapper(toJS(message.object)),
             }
+            this.store.list.updateItem(data)
+          } else if (message.type === 'DELETED' || message.type === 'ADDED') {
+            _getData()
           }
         }
+      }
+
+      this.disposer = reaction(
+        () => this.websocket.message,
+        this.props.onMessage || onMessage
       )
     }
   }

@@ -18,10 +18,10 @@
 
 import { getIndexRoute } from 'utils/router.config'
 
-import VersionManage from 'apps/containers/Store/Detail/VersionManage'
-import AppInformation from 'apps/containers/Store/Detail/AppInformation'
-import AuditRecord from 'apps/containers/Store/Detail/AuditRecord'
-import AppInstances from 'apps/containers/Store/Detail/AppInstances'
+import AppInformation from 'apps/containers/StoreManage/Detail/AppInformation'
+import AuditRecord from 'apps/containers/StoreManage/Detail/AuditRecord'
+import VersionManage from './VersionManage'
+import AppInstances from './AppInstances'
 
 const PATH = '/workspaces/:workspace/apps/:appId'
 

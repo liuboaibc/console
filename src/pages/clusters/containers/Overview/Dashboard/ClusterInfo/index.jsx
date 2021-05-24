@@ -17,6 +17,7 @@
  */
 
 import React, { Component } from 'react'
+import { get } from 'lodash'
 import { inject } from 'mobx-react'
 import { Panel, Text } from 'components/Base'
 
@@ -38,6 +39,10 @@ export default class ClusterInfo extends Component {
           <Text
             title={cluster.kubernetesVersion || version}
             description={t('Kubernetes Version')}
+          />
+          <Text
+            title={get(cluster, 'configz.ksVersion', '-')}
+            description={t('KubeSphere Version')}
           />
           <Text
             title={

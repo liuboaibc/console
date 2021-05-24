@@ -25,6 +25,7 @@ import { Panel, Text } from 'components/Base'
 import PlatformMonitorStore from 'stores/monitoring/platform'
 
 import PlatformStatus from './PlatformStatus'
+import History from './History'
 
 import styles from './index.scss'
 
@@ -78,8 +79,11 @@ export default class AdminDashboard extends React.Component {
               />
             )}
           </Panel>
-          <Panel className={styles.status} title={t('Platform Running Status')}>
+          <Panel className={styles.status} title={t('Platform Status')}>
             <PlatformStatus metrics={this.monitorStore.data} />
+          </Panel>
+          <Panel title={t('Recent Visit')}>
+            <History />
           </Panel>
         </>
       </Loading>

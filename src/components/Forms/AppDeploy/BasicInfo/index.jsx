@@ -64,10 +64,10 @@ export default class BasicInfo extends React.Component {
   )
 
   fetchVersions = async (params = {}) => {
-    const { appID, versionStore, fromStore } = this.props
+    const { appId, versionStore, fromStore } = this.props
     return versionStore.fetchList({
       ...params,
-      app_id: appID,
+      app_id: appId,
       status: fromStore ? 'active' : undefined,
     })
   }
@@ -90,7 +90,7 @@ export default class BasicInfo extends React.Component {
   }
 
   render() {
-    const { formData, formRef, namespace, versionId, versionStore } = this.props
+    const { formData, formRef, namespace, versionStore } = this.props
     return (
       <div className={styles.wrapper}>
         <Form data={formData} ref={formRef}>
@@ -104,7 +104,9 @@ export default class BasicInfo extends React.Component {
                   { required: true, message: t('Please input name') },
                   {
                     pattern: PATTERN_SERVICE_NAME,
-                    message: `${t('Invalid name')}, ${t('CLUSTER_NAME_DESC')}`,
+                    message: t('Invalid name', {
+                      message: t('CLUSTER_NAME_DESC'),
+                    }),
                   },
                 ]}
               >
@@ -132,9 +134,6 @@ export default class BasicInfo extends React.Component {
                   onChange={this.handleVersionChange}
                   optionRenderer={this.versionOptionRender}
                   valueRenderer={this.versionOptionRender}
-                  disabled={!!versionId}
-                  searchable
-                  clearable
                 />
               </Form.Item>
             </Column>
@@ -142,7 +141,7 @@ export default class BasicInfo extends React.Component {
           <Columns>
             <Column>
               <Form.Item label={t('Description')} desc={t('DESCRIPTION_DESC')}>
-                <TextArea name="desc" maxLength={256} />
+                <TextArea name="description" maxLength={256} />
               </Form.Item>
             </Column>
             <Column />

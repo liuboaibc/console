@@ -34,10 +34,16 @@ export default {
             return
           }
 
+          set(
+            data,
+            'metadata.annotations["iam.kubesphere.io/uninitialized"]',
+            'true'
+          )
+
           await store.create(data)
 
           Modal.close(modal)
-          Notify.success({ content: `${t('Created Successfully')}!` })
+          Notify.success({ content: `${t('Created Successfully')}` })
           success && success()
         },
         modal: CreateModal,
@@ -59,7 +65,7 @@ export default {
           await store.update(detail, data)
 
           Modal.close(modal)
-          Notify.success({ content: `${t('Updated Successfully')}!` })
+          Notify.success({ content: `${t('Updated Successfully')}` })
           success && success()
         },
         modal: CreateModal,
@@ -92,7 +98,7 @@ export default {
           }
 
           Modal.close(modal)
-          Notify.success({ content: `${t('Updated Successfully')}!` })
+          Notify.success({ content: `${t('Updated Successfully')}` })
           success && success()
         },
         modal: UserSettingModal,
@@ -111,7 +117,7 @@ export default {
           }
           store.modifyPassword(detail, data).then(() => {
             Modal.close(modal)
-            Notify.success({ content: `${t('Updated Successfully')}!` })
+            Notify.success({ content: `${t('Updated Successfully')}` })
             success && success()
           })
         },
